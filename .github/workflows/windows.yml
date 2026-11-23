@@ -10,9 +10,9 @@ permissions:
   packages: none
 
 jobs:
-  build:
-    if: github.repository_owner == 'myridia'
+  Build:
     runs-on: windows-latest
+
     steps:
       - name: Dependencies
         run: vcpkg install sqlite3:x64-windows-static

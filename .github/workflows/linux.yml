@@ -1,5 +1,4 @@
 name: Linux
-
 on:
   workflow_dispatch:
   workflow_call:
@@ -11,9 +10,9 @@ permissions:
   packages: none
 
 jobs:
-  build:
-    if: github.repository_owner == 'myridia'
+  Build:
     runs-on: ubuntu-22.04
+
     steps:
       - name: Dependencies
         run: |

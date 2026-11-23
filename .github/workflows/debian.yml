@@ -1,5 +1,4 @@
 name: Debian
-
 on:
   workflow_dispatch:
   workflow_call:
@@ -11,9 +10,9 @@ permissions:
   packages: none
 
 jobs:
-  build:
-    if: github.repository_owner == 'myridia'
+  Build:
     runs-on: ubuntu-22.04
+
     steps:
       - name: Dependencies
         run: |
@@ -39,7 +38,6 @@ jobs:
           tree
 
       - name: Release
-        if: github.repository_owner == 'myridia'
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}

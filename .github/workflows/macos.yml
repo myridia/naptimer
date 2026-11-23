@@ -1,5 +1,4 @@
-name: Mac
-
+name: Macos
 on:
   workflow_dispatch:
   workflow_call:
@@ -11,9 +10,9 @@ permissions:
   packages: none
 
 jobs:
-  build:
-    if: github.repository_owner == 'myridia'
+  Build:
     runs-on: macos-15
+
     steps:
        - name: Nappgui
          run: |
@@ -34,13 +33,13 @@ jobs:
            ls build/Release/bin/
            ls build/Release/bin/naptimer.app
            cd build/Release/bin/
-           hdiutil create -volname "naptimer" -srcfolder "naptimer.app" -ov -format UDZO "naptimer-arm64.dmg"
+           hdiutil create -volname "naptimer" -srcfolder "naptimer.app" -ov -format UDZO "naptimer-macos.dmg"
 
        - name: Release
          uses: svenstaro/upload-release-action@v2
          with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: 'build/Release/bin/naptimer-arm64.dmg'
+          file: 'build/Release/bin/naptimer-macos.dmg'
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
