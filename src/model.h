@@ -66,6 +66,7 @@ typedef struct
     int reminder;
     int reminder_interval;
     int next_id;
+    int ui_font_size;
 } NtSettings;
 
 typedef struct

@@ -98,6 +98,7 @@ void nt_model_save_settings(NtModel *model)
     nt_jb_puts(&buf, ",\"reminder\":"); nt_jb_bool(&buf, s->reminder);
     nt_jb_puts(&buf, ",\"reminder_interval\":"); nt_jb_int(&buf, s->reminder_interval);
     nt_jb_puts(&buf, ",\"next_id\":"); nt_jb_int(&buf, s->next_id);
+    nt_jb_puts(&buf, ",\"ui_font_size\":"); nt_jb_int(&buf, s->ui_font_size);
     i_end_doc(&buf);
     i_save(model, "settings", &buf);
 }
@@ -226,6 +227,7 @@ static void i_load_cb(const char *id, const char *rev, const char *doc, void *co
         s->reminder = nt_json_bool(nt_json_get(json, "reminder"), 0);
         s->reminder_interval = (int)nt_json_int(nt_json_get(json, "reminder_interval"), 15);
         s->next_id = (int)nt_json_int(nt_json_get(json, "next_id"), 0);
+        s->ui_font_size = (int)nt_json_int(nt_json_get(json, "ui_font_size"), 0);
     }
     else if (strcmp(type, "session") == 0)
     {
@@ -330,6 +332,7 @@ void nt_model_init(NtModel *model, NtStore *store)
     model->settings.week_start = 1;
     model->settings.reminder_interval = 15;
     model->settings.next_id = 1;
+    model->settings.ui_font_size = 0;
 }
 
 int nt_model_load(NtModel *model, char *error, size_t error_size)

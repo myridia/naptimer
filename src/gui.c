@@ -41,6 +41,8 @@ struct _App
     Button *start_button;
     Button *stop_all_button;
     Layout *quick_layout;
+    Label *tb_labels[6];
+    Button *nav_buttons[3];
 
     NtStore store;
     NtModel model;
@@ -77,6 +79,35 @@ enum
 static void i_set_status(App *app, const char_t *text)
 {
     label_text(app->status, text != NULL ? text : "");
+}
+
+static real32_t i_ui_font_size(const App *app)
+{
+    int s = app->model.settings.ui_font_size;
+    if (s > 0)
+        return (real32_t)s;
+    return font_regular_size() + 2.f;
+}
+
+static void i_apply_label_font(App *app, Label *label)
+{
+    Font *f = font_system(i_ui_font_size(app), 0);
+    label_font(label, f);
+    font_destroy(&f);
+}
+
+static void i_apply_button_font(App *app, Button *button)
+{
+    Font *f = font_system(i_ui_font_size(app), 0);
+    button_font(button, f);
+    font_destroy(&f);
+}
+
+static void i_apply_table_font(App *app)
+{
+    Font *f = font_system(i_ui_font_size(app), 0);
+    tableview_font(app->table, f);
+    font_destroy(&f);
 }
 
 static bool_t i_task_visible(const App *app, const NtTask *task)
@@ -212,8 +243,15 @@ static void i_OnTableData(App *app, Event *e)
 
 static void i_OnFilterChange(App *app, Event *e)
 {
-    const char_t *text = edit_get_text(app->filter);
-    bstd_sprintf(app->search, sizeof(app->search), "%s", text != NULL ? text : "");
+    if (app->filter == NULL)
+    {
+        unref(e);
+        return;
+    }
+    {
+        const char_t *text = edit_get_text(app->filter);
+        bstd_sprintf(app->search, sizeof(app->search), "%s", text != NULL ? text : "");
+    }
     i_refresh(app);
     unref(e);
 }
@@ -305,6 +343,15 @@ static bool_t i_prompt_text(App *app, const char_t *title, const char_t *prompt_
     button_text(cancel, "Cancel");
     button_OnClick(ok, listener(&prompt, i_OnPromptOk, Prompt));
     button_OnClick(cancel, listener(&prompt, i_OnPromptCancel, Prompt));
+
+    i_apply_label_font(app, label);
+    i_apply_button_font(app, ok);
+    i_apply_button_font(app, cancel);
+    {
+        Font *f = font_system(i_ui_font_size(app), 0);
+        edit_font(edit, f);
+        font_destroy(&f);
+    }
 
     layout_label(layout, label, 0, 0);
     layout_edit(layout, edit, 0, 1);
@@ -766,7 +813,6 @@ static void i_OnToday(App *app, Event *e)
 
 static void i_OnQuickEntry(App *app, Event *e)
 {
-    window_focus(app->window, guicontrol(app->quick));
     unref(e);
 }
 
@@ -838,14 +884,15 @@ static void i_parse_quick(App *app, const char *input)
         nt_model_sync_tags(&app->model, task->id, tags);
 
     nt_timer_start(&app->model, task->id, 1);
-    edit_text(app->quick, "");
+    if (app->quick != NULL)
+        edit_text(app->quick, "");
     i_refresh(app);
     i_set_status(app, "Quick entry started.");
 }
 
 static void i_OnQuickAccept(App *app, Event *e)
 {
-    const char_t *text = edit_get_text(app->quick);
+    const char_t *text = app->quick != NULL ? edit_get_text(app->quick) : NULL;
     i_parse_quick(app, text != NULL ? text : "");
     unref(e);
 }
@@ -1144,20 +1191,82 @@ static void i_OnWindowClose(App *app, Event *e)
     unref(e);
 }
 
+static void i_apply_all_fonts(App *app)
+{
+    real32_t size;
+    uint32_t i;
+
+    if (app == NULL)
+        return;
+
+    size = i_ui_font_size(app);
+    i_apply_table_font(app);
+    tableview_row_height(app->table, (uint32_t)(size + 16.f));
+
+    i_apply_label_font(app, app->status);
+    i_apply_label_font(app, app->date_label);
+    i_apply_label_font(app, app->total_label);
+
+    for (i = 0; i < 6; i += 1)
+    {
+        if (app->tb_labels[i] != NULL)
+            i_apply_label_font(app, app->tb_labels[i]);
+    }
+    for (i = 0; i < 3; i += 1)
+    {
+        if (app->nav_buttons[i] != NULL)
+            i_apply_button_font(app, app->nav_buttons[i]);
+    }
+}
+
+static void i_OnFontSize(App *app, Event *e)
+{
+    char initial[32];
+    char out[32];
+    int size;
+
+    bstd_sprintf(initial, sizeof(initial), "%d", (int)i_ui_font_size(app));
+    if (i_prompt_text(app, "Font Size", "UI font size (pt, 0=default):", initial, out, sizeof(out)) == TRUE)
+    {
+        size = atoi(out);
+        if (size < 0)
+            size = 0;
+        if (size > 0 && size < 8)
+            size = 8;
+        if (size > 72)
+            size = 72;
+        app->model.settings.ui_font_size = size;
+        nt_model_save_settings(&app->model);
+        i_apply_all_fonts(app);
+        i_refresh(app);
+    }
+    unref(e);
+}
+
 static App *i_app_create(const char *db_path)
 {
     App *app = heap_new0(App);
-    Layout *layout = layout_create(1, 6);
+    Layout *layout = layout_create(1, 4);
     Layout *toolbar = layout_create(6, 1);
-    Layout *search_layout = layout_create(2, 1);
     Layout *footer = layout_create(5, 1);
-    Label *filter_label = label_create();
     Button *btn_start = button_flat();
     Button *btn_stop = button_flat();
     Button *btn_stop_all = button_flat();
     Button *btn_annotate = button_flat();
     Button *btn_add = button_flat();
     Button *btn_edit = button_flat();
+    Label *lbl_start = label_create();
+    Label *lbl_stop = label_create();
+    Label *lbl_stop_all = label_create();
+    Label *lbl_annotate = label_create();
+    Label *lbl_add = label_create();
+    Label *lbl_edit = label_create();
+    Layout *tb_start = layout_create(1, 2);
+    Layout *tb_stop = layout_create(1, 2);
+    Layout *tb_stop_all = layout_create(1, 2);
+    Layout *tb_annotate = layout_create(1, 2);
+    Layout *tb_add = layout_create(1, 2);
+    Layout *tb_edit = layout_create(1, 2);
     Button *prev = button_push();
     Button *next = button_push();
     Button *today = button_push();
@@ -1181,19 +1290,19 @@ static App *i_app_create(const char *db_path)
 
     app->panel = panel_create();
     app->table = tableview_create();
-    app->filter = edit_create();
-    app->quick = edit_create();
+    app->filter = NULL;
+    app->quick = NULL;
     app->status = label_create();
     app->date_label = label_create();
     app->total_label = label_create();
     app->start_button = btn_start;
     app->stop_all_button = btn_stop_all;
-    app->quick_layout = layout_create(2, 1);
+    app->quick_layout = NULL;
 
     tableview_OnData(app->table, listener(app, i_OnTableData, App));
     tableview_OnRowClick(app->table, listener(app, i_OnRowClick, App));
     tableview_header_resizable(app->table, TRUE);
-    tableview_row_height(app->table, 26);
+    tableview_row_height(app->table, (uint32_t)(i_ui_font_size(app) + 16.f));
     tableview_new_column_text(app->table);
     tableview_header_title(app->table, 0, "Project");
     tableview_column_width(app->table, 0, 160);
@@ -1211,9 +1320,9 @@ static App *i_app_create(const char *db_path)
     tableview_header_title(app->table, 4, "Total");
     tableview_column_width(app->table, 4, 110);
     tableview_header_align(app->table, 4, ekCENTER);
+    tableview_size(app->table, s2df(940.f, 460.f));
 
-    label_text(filter_label, "Search:");
-    edit_OnChange(app->filter, listener(app, i_OnFilterChange, App));
+    i_apply_table_font(app);
 
     button_image(btn_start, gui_image(START_PNG));
     button_tooltip(btn_start, "Start/Stop timing");
@@ -1239,6 +1348,44 @@ static App *i_app_create(const char *db_path)
     button_tooltip(btn_edit, "Edit task");
     button_OnClick(btn_edit, listener(app, i_OnEditTask, App));
 
+    label_text(lbl_start, "Start");
+    label_text(lbl_stop, "Stop");
+    label_text(lbl_stop_all, "Stop All");
+    label_text(lbl_annotate, "Annotate");
+    label_text(lbl_add, "Add");
+    label_text(lbl_edit, "Edit");
+    label_align(lbl_start, ekCENTER);
+    label_align(lbl_stop, ekCENTER);
+    label_align(lbl_stop_all, ekCENTER);
+    label_align(lbl_annotate, ekCENTER);
+    label_align(lbl_add, ekCENTER);
+    label_align(lbl_edit, ekCENTER);
+
+    layout_button(tb_start, btn_start, 0, 0);
+    layout_label(tb_start, lbl_start, 0, 1);
+    layout_halign(tb_start, 0, 0, ekCENTER);
+    layout_halign(tb_start, 0, 1, ekCENTER);
+    layout_button(tb_stop, btn_stop, 0, 0);
+    layout_label(tb_stop, lbl_stop, 0, 1);
+    layout_halign(tb_stop, 0, 0, ekCENTER);
+    layout_halign(tb_stop, 0, 1, ekCENTER);
+    layout_button(tb_stop_all, btn_stop_all, 0, 0);
+    layout_label(tb_stop_all, lbl_stop_all, 0, 1);
+    layout_halign(tb_stop_all, 0, 0, ekCENTER);
+    layout_halign(tb_stop_all, 0, 1, ekCENTER);
+    layout_button(tb_annotate, btn_annotate, 0, 0);
+    layout_label(tb_annotate, lbl_annotate, 0, 1);
+    layout_halign(tb_annotate, 0, 0, ekCENTER);
+    layout_halign(tb_annotate, 0, 1, ekCENTER);
+    layout_button(tb_add, btn_add, 0, 0);
+    layout_label(tb_add, lbl_add, 0, 1);
+    layout_halign(tb_add, 0, 0, ekCENTER);
+    layout_halign(tb_add, 0, 1, ekCENTER);
+    layout_button(tb_edit, btn_edit, 0, 0);
+    layout_label(tb_edit, lbl_edit, 0, 1);
+    layout_halign(tb_edit, 0, 0, ekCENTER);
+    layout_halign(tb_edit, 0, 1, ekCENTER);
+
     button_text(prev, "<");
     button_text(next, ">");
     button_text(today, "Today");
@@ -1246,33 +1393,40 @@ static App *i_app_create(const char *db_path)
     button_OnClick(next, listener(app, i_OnNextDay, App));
     button_OnClick(today, listener(app, i_OnToday, App));
 
-    layout_button(toolbar, btn_start, 0, 0);
-    layout_button(toolbar, btn_stop, 1, 0);
-    layout_button(toolbar, btn_stop_all, 2, 0);
-    layout_button(toolbar, btn_annotate, 3, 0);
-    layout_button(toolbar, btn_add, 4, 0);
-    layout_button(toolbar, btn_edit, 5, 0);
+    app->tb_labels[0] = lbl_start;
+    app->tb_labels[1] = lbl_stop;
+    app->tb_labels[2] = lbl_stop_all;
+    app->tb_labels[3] = lbl_annotate;
+    app->tb_labels[4] = lbl_add;
+    app->tb_labels[5] = lbl_edit;
+    app->nav_buttons[0] = prev;
+    app->nav_buttons[1] = next;
+    app->nav_buttons[2] = today;
+
+    i_apply_label_font(app, lbl_start);
+    i_apply_label_font(app, lbl_stop);
+    i_apply_label_font(app, lbl_stop_all);
+    i_apply_label_font(app, lbl_annotate);
+    i_apply_label_font(app, lbl_add);
+    i_apply_label_font(app, lbl_edit);
+    i_apply_label_font(app, app->status);
+    i_apply_label_font(app, app->date_label);
+    i_apply_label_font(app, app->total_label);
+    i_apply_button_font(app, prev);
+    i_apply_button_font(app, next);
+    i_apply_button_font(app, today);
+
+    layout_layout(toolbar, tb_start, 0, 0);
+    layout_layout(toolbar, tb_stop, 1, 0);
+    layout_layout(toolbar, tb_stop_all, 2, 0);
+    layout_layout(toolbar, tb_annotate, 3, 0);
+    layout_layout(toolbar, tb_add, 4, 0);
+    layout_layout(toolbar, tb_edit, 5, 0);
     layout_hmargin(toolbar, 0, 4);
     layout_hmargin(toolbar, 1, 4);
     layout_hmargin(toolbar, 2, 4);
     layout_hmargin(toolbar, 3, 4);
     layout_hmargin(toolbar, 4, 4);
-
-    layout_label(search_layout, filter_label, 0, 0);
-    layout_edit(search_layout, app->filter, 1, 0);
-    layout_hexpand(search_layout, 1);
-    layout_hmargin(search_layout, 0, 6);
-
-    {
-        Button *quick_go = button_push();
-        button_text(quick_go, "Start");
-        button_OnClick(quick_go, listener(app, i_OnQuickAccept, App));
-        layout_edit(app->quick_layout, app->quick, 0, 0);
-        layout_button(app->quick_layout, quick_go, 1, 0);
-        layout_hexpand(app->quick_layout, 0);
-        layout_hmargin(app->quick_layout, 0, 6);
-        layout_margin(app->quick_layout, 0);
-    }
 
     layout_button(footer, prev, 0, 0);
     layout_label(footer, app->date_label, 1, 0);
@@ -1287,20 +1441,14 @@ static App *i_app_create(const char *db_path)
     layout_halign(footer, 4, 0, ekRIGHT);
 
     layout_layout(layout, toolbar, 0, 0);
-    layout_layout(layout, search_layout, 0, 1);
-    layout_layout(layout, app->quick_layout, 0, 2);
-    layout_tableview(layout, app->table, 0, 3);
-    layout_layout(layout, footer, 0, 4);
-    layout_label(layout, app->status, 0, 5);
+    layout_tableview(layout, app->table, 0, 1);
+    layout_layout(layout, footer, 0, 2);
+    layout_label(layout, app->status, 0, 3);
     layout_hexpand(layout, 0);
-    layout_vexpand(layout, 3);
-    layout_hsize(layout, 0, 940);
-    layout_vsize(layout, 3, 420);
+    layout_vexpand(layout, 1);
     layout_margin(layout, 10);
     layout_vmargin(layout, 0, 6);
-    layout_vmargin(layout, 1, 6);
     layout_vmargin(layout, 2, 6);
-    layout_vmargin(layout, 4, 6);
 
     panel_layout(app->panel, layout);
     window_panel(app->window, app->panel);
@@ -1314,7 +1462,6 @@ static App *i_app_create(const char *db_path)
     window_hotkey(app->window, ekKEY_LEFT, ekMKEY_ALT, listener(app, i_OnPrevDay, App));
     window_hotkey(app->window, ekKEY_RIGHT, ekMKEY_ALT, listener(app, i_OnNextDay, App));
     window_hotkey(app->window, ekKEY_HOME, ekMKEY_ALT, listener(app, i_OnToday, App));
-    window_hotkey(app->window, ekKEY_SPACE, ekMKEY_CONTROL, listener(app, i_OnQuickEntry, App));
     window_hotkey(app->window, ekKEY_SUPR, ekMKEY_NONE, listener(app, i_OnDeleteTask, App));
 
     menu = menu_create();
@@ -1455,6 +1602,12 @@ static App *i_app_create(const char *db_path)
         MenuItem *opt_item = menuitem_create();
         Menu *opt_menu = menu_create();
         menuitem_text(opt_item, "Options");
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Font Size...");
+            menuitem_OnClick(mi, listener(app, i_OnFontSize, App));
+            menu_add_item(opt_menu, mi);
+        }
         {
             MenuItem *mi = menuitem_create();
             menuitem_text(mi, "Preferences...");
