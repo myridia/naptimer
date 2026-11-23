@@ -1,4 +1,4 @@
-nap_desktop_app(naptimer "" NRC_NONE)
+nap_desktop_app(naptimer "" NRC_EMBEDDED)
 
 target_include_directories(naptimer PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(naptimer SQLite::SQLite3 ${CMAKE_DL_LIBS})

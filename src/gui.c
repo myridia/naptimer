@@ -9,6 +9,7 @@
 
 #include <nappgui.h>
 #include <sewer/bstd.h>
+#include "res_naptimer.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1146,19 +1147,21 @@ static void i_OnWindowClose(App *app, Event *e)
 static App *i_app_create(const char *db_path)
 {
     App *app = heap_new0(App);
-    Layout *layout = layout_create(1, 5);
-    Layout *toolbar = layout_create(7, 1);
+    Layout *layout = layout_create(1, 6);
+    Layout *toolbar = layout_create(6, 1);
+    Layout *search_layout = layout_create(2, 1);
     Layout *footer = layout_create(5, 1);
     Label *filter_label = label_create();
-    Button *new_task = button_push();
-    Button *start = button_push();
-    Button *stop_all = button_push();
+    Button *btn_start = button_flat();
+    Button *btn_stop = button_flat();
+    Button *btn_stop_all = button_flat();
+    Button *btn_annotate = button_flat();
+    Button *btn_add = button_flat();
+    Button *btn_edit = button_flat();
     Button *prev = button_push();
     Button *next = button_push();
     Button *today = button_push();
     Menu *menu;
-    MenuItem *file_item;
-    Menu *file_menu;
 
     bstd_sprintf(app->db_path, sizeof(app->db_path), "%s", db_path);
     if (nt_store_open(db_path, &app->store, NULL, 0) != 0)
@@ -1168,6 +1171,9 @@ static App *i_app_create(const char *db_path)
     }
     nt_model_init(&app->model, &app->store);
     nt_model_load(&app->model, NULL, 0);
+
+    gui_respack(res_naptimer_respack);
+    gui_language("");
 
     app->window = window_create(ekWINDOW_STDRES);
     window_title(app->window, "Naptimer");
@@ -1180,8 +1186,8 @@ static App *i_app_create(const char *db_path)
     app->status = label_create();
     app->date_label = label_create();
     app->total_label = label_create();
-    app->start_button = start;
-    app->stop_all_button = stop_all;
+    app->start_button = btn_start;
+    app->stop_all_button = btn_stop_all;
     app->quick_layout = layout_create(2, 1);
 
     tableview_OnData(app->table, listener(app, i_OnTableData, App));
@@ -1208,30 +1214,54 @@ static App *i_app_create(const char *db_path)
 
     label_text(filter_label, "Search:");
     edit_OnChange(app->filter, listener(app, i_OnFilterChange, App));
-    button_text(new_task, "New Task");
-    button_text(start, "Start/Stop");
-    button_text(stop_all, "Stop All");
+
+    button_image(btn_start, gui_image(START_PNG));
+    button_tooltip(btn_start, "Start/Stop timing");
+    button_OnClick(btn_start, listener(app, i_OnStartStop, App));
+
+    button_image(btn_stop, gui_image(STOP_PNG));
+    button_tooltip(btn_stop, "Stop timing");
+    button_OnClick(btn_stop, listener(app, i_OnStartStop, App));
+
+    button_image(btn_stop_all, gui_image(STOP_ALL_PNG));
+    button_tooltip(btn_stop_all, "Stop all timers");
+    button_OnClick(btn_stop_all, listener(app, i_OnStopAll, App));
+
+    button_image(btn_annotate, gui_image(ANNOTATE_PNG));
+    button_tooltip(btn_annotate, "Add annotation");
+    button_OnClick(btn_annotate, listener(app, i_OnAnnotate, App));
+
+    button_image(btn_add, gui_image(ADD_PNG));
+    button_tooltip(btn_add, "New task");
+    button_OnClick(btn_add, listener(app, i_OnNewTask, App));
+
+    button_image(btn_edit, gui_image(EDIT_PNG));
+    button_tooltip(btn_edit, "Edit task");
+    button_OnClick(btn_edit, listener(app, i_OnEditTask, App));
+
     button_text(prev, "<");
     button_text(next, ">");
     button_text(today, "Today");
-
-    button_OnClick(new_task, listener(app, i_OnNewTask, App));
-    button_OnClick(start, listener(app, i_OnStartStop, App));
-    button_OnClick(stop_all, listener(app, i_OnStopAll, App));
     button_OnClick(prev, listener(app, i_OnPrevDay, App));
     button_OnClick(next, listener(app, i_OnNextDay, App));
     button_OnClick(today, listener(app, i_OnToday, App));
 
-    layout_button(toolbar, new_task, 0, 0);
-    layout_button(toolbar, start, 1, 0);
-    layout_button(toolbar, stop_all, 2, 0);
-    layout_label(toolbar, filter_label, 3, 0);
-    layout_edit(toolbar, app->filter, 4, 0);
-    layout_hexpand(toolbar, 4);
-    layout_hmargin(toolbar, 0, 6);
-    layout_hmargin(toolbar, 1, 6);
-    layout_hmargin(toolbar, 2, 10);
-    layout_hmargin(toolbar, 3, 6);
+    layout_button(toolbar, btn_start, 0, 0);
+    layout_button(toolbar, btn_stop, 1, 0);
+    layout_button(toolbar, btn_stop_all, 2, 0);
+    layout_button(toolbar, btn_annotate, 3, 0);
+    layout_button(toolbar, btn_add, 4, 0);
+    layout_button(toolbar, btn_edit, 5, 0);
+    layout_hmargin(toolbar, 0, 4);
+    layout_hmargin(toolbar, 1, 4);
+    layout_hmargin(toolbar, 2, 4);
+    layout_hmargin(toolbar, 3, 4);
+    layout_hmargin(toolbar, 4, 4);
+
+    layout_label(search_layout, filter_label, 0, 0);
+    layout_edit(search_layout, app->filter, 1, 0);
+    layout_hexpand(search_layout, 1);
+    layout_hmargin(search_layout, 0, 6);
 
     {
         Button *quick_go = button_push();
@@ -1257,18 +1287,20 @@ static App *i_app_create(const char *db_path)
     layout_halign(footer, 4, 0, ekRIGHT);
 
     layout_layout(layout, toolbar, 0, 0);
-    layout_layout(layout, app->quick_layout, 0, 1);
-    layout_tableview(layout, app->table, 0, 2);
-    layout_layout(layout, footer, 0, 3);
-    layout_label(layout, app->status, 0, 4);
+    layout_layout(layout, search_layout, 0, 1);
+    layout_layout(layout, app->quick_layout, 0, 2);
+    layout_tableview(layout, app->table, 0, 3);
+    layout_layout(layout, footer, 0, 4);
+    layout_label(layout, app->status, 0, 5);
     layout_hexpand(layout, 0);
-    layout_vexpand(layout, 2);
+    layout_vexpand(layout, 3);
     layout_hsize(layout, 0, 940);
-    layout_vsize(layout, 2, 460);
+    layout_vsize(layout, 3, 420);
     layout_margin(layout, 10);
     layout_vmargin(layout, 0, 6);
     layout_vmargin(layout, 1, 6);
-    layout_vmargin(layout, 3, 6);
+    layout_vmargin(layout, 2, 6);
+    layout_vmargin(layout, 4, 6);
 
     panel_layout(app->panel, layout);
     window_panel(app->window, app->panel);
@@ -1286,67 +1318,68 @@ static App *i_app_create(const char *db_path)
     window_hotkey(app->window, ekKEY_SUPR, ekMKEY_NONE, listener(app, i_OnDeleteTask, App));
 
     menu = menu_create();
-    file_item = menuitem_create();
-    menuitem_text(file_item, "File");
-    file_menu = menu_create();
-    {
-        MenuItem *mi = menuitem_create();
-        menuitem_text(mi, "New Task");
-        menuitem_OnClick(mi, listener(app, i_OnNewTask, App));
-        menu_add_item(file_menu, mi);
-    }
-    {
-        MenuItem *mi = menuitem_create();
-        menuitem_text(mi, "New Project");
-        menuitem_OnClick(mi, listener(app, i_OnNewProject, App));
-        menu_add_item(file_menu, mi);
-    }
-    {
-        MenuItem *mi = menuitem_create();
-        menuitem_text(mi, "Report...");
-        menuitem_OnClick(mi, listener(app, i_OnReport, App));
-        menu_add_item(file_menu, mi);
-    }
-    {
-        MenuItem *mi = menuitem_create();
-        menuitem_text(mi, "Export JSON...");
-        menuitem_OnClick(mi, listener(app, i_OnExportJson, App));
-        menu_add_item(file_menu, mi);
-    }
-    {
-        MenuItem *mi = menuitem_create();
-        menuitem_text(mi, "Export CSV...");
-        menuitem_OnClick(mi, listener(app, i_OnExportCsv, App));
-        menu_add_item(file_menu, mi);
-    }
-    {
-        MenuItem *mi = menuitem_create();
-        menuitem_text(mi, "Import CSV...");
-        menuitem_OnClick(mi, listener(app, i_OnImportCsv, App));
-        menu_add_item(file_menu, mi);
-    }
-    {
-        MenuItem *mi = menuitem_create();
-        menuitem_text(mi, "Backup...");
-        menuitem_OnClick(mi, listener(app, i_OnBackup2, App));
-        menu_add_item(file_menu, mi);
-    }
-    {
-        MenuItem *mi = menuitem_create();
-        menuitem_text(mi, "Restore...");
-        menuitem_OnClick(mi, listener(app, i_OnRestore, App));
-        menu_add_item(file_menu, mi);
-    }
-    menu_add_item(file_menu, menuitem_separator());
-    {
-        MenuItem *mi = menuitem_create();
-        menuitem_text(mi, "Quit");
-        menuitem_OnClick(mi, listener(app, i_OnQuit, App));
-        menu_add_item(file_menu, mi);
-    }
-    menuitem_submenu(file_item, &file_menu);
-    menu_add_item(menu, file_item);
 
+    /* File */
+    {
+        MenuItem *file_item = menuitem_create();
+        Menu *file_menu = menu_create();
+        menuitem_text(file_item, "File");
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "New Task");
+            menuitem_OnClick(mi, listener(app, i_OnNewTask, App));
+            menu_add_item(file_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "New Project");
+            menuitem_OnClick(mi, listener(app, i_OnNewProject, App));
+            menu_add_item(file_menu, mi);
+        }
+        menu_add_item(file_menu, menuitem_separator());
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Export JSON...");
+            menuitem_OnClick(mi, listener(app, i_OnExportJson, App));
+            menu_add_item(file_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Export CSV...");
+            menuitem_OnClick(mi, listener(app, i_OnExportCsv, App));
+            menu_add_item(file_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Import CSV...");
+            menuitem_OnClick(mi, listener(app, i_OnImportCsv, App));
+            menu_add_item(file_menu, mi);
+        }
+        menu_add_item(file_menu, menuitem_separator());
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Backup...");
+            menuitem_OnClick(mi, listener(app, i_OnBackup2, App));
+            menu_add_item(file_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Restore...");
+            menuitem_OnClick(mi, listener(app, i_OnRestore, App));
+            menu_add_item(file_menu, mi);
+        }
+        menu_add_item(file_menu, menuitem_separator());
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Quit");
+            menuitem_OnClick(mi, listener(app, i_OnQuit, App));
+            menu_add_item(file_menu, mi);
+        }
+        menuitem_submenu(file_item, &file_menu);
+        menu_add_item(menu, file_item);
+    }
+
+    /* Edit */
     {
         MenuItem *edit_item = menuitem_create();
         Menu *edit_menu = menu_create();
@@ -1355,6 +1388,12 @@ static App *i_app_create(const char *db_path)
             MenuItem *mi = menuitem_create();
             menuitem_text(mi, "Edit Task");
             menuitem_OnClick(mi, listener(app, i_OnEditTask, App));
+            menu_add_item(edit_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Delete Task");
+            menuitem_OnClick(mi, listener(app, i_OnDeleteTask, App));
             menu_add_item(edit_menu, mi);
         }
         {
@@ -1369,6 +1408,32 @@ static App *i_app_create(const char *db_path)
             menuitem_OnClick(mi, listener(app, i_OnUnhideTasks, App));
             menu_add_item(edit_menu, mi);
         }
+        menu_add_item(edit_menu, menuitem_separator());
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Adjust Time...");
+            menuitem_OnClick(mi, listener(app, i_OnAdjust, App));
+            menu_add_item(edit_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Set to Zero");
+            menuitem_OnClick(mi, listener(app, i_OnSetZero, App));
+            menu_add_item(edit_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Copy Time");
+            menuitem_OnClick(mi, listener(app, i_OnCopyTime, App));
+            menu_add_item(edit_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Paste Time");
+            menuitem_OnClick(mi, listener(app, i_OnPasteTime, App));
+            menu_add_item(edit_menu, mi);
+        }
+        menu_add_item(edit_menu, menuitem_separator());
         {
             MenuItem *mi = menuitem_create();
             menuitem_text(mi, "Add Annotation");
@@ -1385,6 +1450,151 @@ static App *i_app_create(const char *db_path)
         menu_add_item(menu, edit_item);
     }
 
+    /* Options */
+    {
+        MenuItem *opt_item = menuitem_create();
+        Menu *opt_menu = menu_create();
+        menuitem_text(opt_item, "Options");
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Preferences...");
+            /* TODO: preferences dialog */
+            menu_add_item(opt_menu, mi);
+        }
+        menuitem_submenu(opt_item, &opt_menu);
+        menu_add_item(menu, opt_item);
+    }
+
+    /* Task */
+    {
+        MenuItem *task_item = menuitem_create();
+        Menu *task_menu = menu_create();
+        menuitem_text(task_item, "Task");
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "New Task");
+            menuitem_OnClick(mi, listener(app, i_OnNewTask, App));
+            menu_add_item(task_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Edit Task");
+            menuitem_OnClick(mi, listener(app, i_OnEditTask, App));
+            menu_add_item(task_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Delete Task");
+            menuitem_OnClick(mi, listener(app, i_OnDeleteTask, App));
+            menu_add_item(task_menu, mi);
+        }
+        menu_add_item(task_menu, menuitem_separator());
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Start/Stop");
+            menuitem_OnClick(mi, listener(app, i_OnStartStop, App));
+            menu_add_item(task_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Stop All");
+            menuitem_OnClick(mi, listener(app, i_OnStopAll, App));
+            menu_add_item(task_menu, mi);
+        }
+        menu_add_item(task_menu, menuitem_separator());
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Hide Task");
+            menuitem_OnClick(mi, listener(app, i_OnHideTask, App));
+            menu_add_item(task_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Unhide Tasks");
+            menuitem_OnClick(mi, listener(app, i_OnUnhideTasks, App));
+            menu_add_item(task_menu, mi);
+        }
+        menuitem_submenu(task_item, &task_menu);
+        menu_add_item(menu, task_item);
+    }
+
+    /* Project */
+    {
+        MenuItem *proj_item = menuitem_create();
+        Menu *proj_menu = menu_create();
+        menuitem_text(proj_item, "Project");
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "New Project");
+            menuitem_OnClick(mi, listener(app, i_OnNewProject, App));
+            menu_add_item(proj_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Edit Project");
+            menuitem_OnClick(mi, listener(app, i_OnEditProject, App));
+            menu_add_item(proj_menu, mi);
+        }
+        menuitem_submenu(proj_item, &proj_menu);
+        menu_add_item(menu, proj_item);
+    }
+
+    /* Report */
+    {
+        MenuItem *rep_item = menuitem_create();
+        Menu *rep_menu = menu_create();
+        menuitem_text(rep_item, "Report");
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Daily Report...");
+            menuitem_OnClick(mi, listener(app, i_OnReport, App));
+            menu_add_item(rep_menu, mi);
+        }
+        menuitem_submenu(rep_item, &rep_menu);
+        menu_add_item(menu, rep_item);
+    }
+
+    /* Tools */
+    {
+        MenuItem *tools_item = menuitem_create();
+        Menu *tools_menu = menu_create();
+        menuitem_text(tools_item, "Tools");
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Export JSON...");
+            menuitem_OnClick(mi, listener(app, i_OnExportJson, App));
+            menu_add_item(tools_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Export CSV...");
+            menuitem_OnClick(mi, listener(app, i_OnExportCsv, App));
+            menu_add_item(tools_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Import CSV...");
+            menuitem_OnClick(mi, listener(app, i_OnImportCsv, App));
+            menu_add_item(tools_menu, mi);
+        }
+        menu_add_item(tools_menu, menuitem_separator());
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Backup...");
+            menuitem_OnClick(mi, listener(app, i_OnBackup2, App));
+            menu_add_item(tools_menu, mi);
+        }
+        {
+            MenuItem *mi = menuitem_create();
+            menuitem_text(mi, "Restore...");
+            menuitem_OnClick(mi, listener(app, i_OnRestore, App));
+            menu_add_item(tools_menu, mi);
+        }
+        menuitem_submenu(tools_item, &tools_menu);
+        menu_add_item(menu, tools_item);
+    }
+
+    /* Help */
     {
         MenuItem *help_item = menuitem_create();
         Menu *help_menu = menu_create();
