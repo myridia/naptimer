@@ -71,6 +71,7 @@ struct _App
     real32_t win_height;
     real32_t table_width;
     real32_t table_height;
+    Menu *context_menu;
 };
 
 enum
@@ -674,6 +675,36 @@ static void i_OnAdjust(App *app, Event *e)
     int64_t seconds = (int64_t)p->index;
     i_add_seconds(app, seconds);
     i_set_status(app, "Time adjusted. (Undo available)");
+    unref(e);
+}
+
+static void i_OnAdd1m(App *app, Event *e) { i_add_seconds(app, 60); i_set_status(app, "Time adjusted. (Undo available)"); unref(e); }
+static void i_OnAdd5m(App *app, Event *e) { i_add_seconds(app, 300); i_set_status(app, "Time adjusted. (Undo available)"); unref(e); }
+static void i_OnAdd30m(App *app, Event *e) { i_add_seconds(app, 1800); i_set_status(app, "Time adjusted. (Undo available)"); unref(e); }
+static void i_OnSub1m(App *app, Event *e) { i_add_seconds(app, -60); i_set_status(app, "Time adjusted. (Undo available)"); unref(e); }
+static void i_OnSub5m(App *app, Event *e) { i_add_seconds(app, -300); i_set_status(app, "Time adjusted. (Undo available)"); unref(e); }
+static void i_OnSub30m(App *app, Event *e) { i_add_seconds(app, -1800); i_set_status(app, "Time adjusted. (Undo available)"); unref(e); }
+
+static void i_OnCutTime(App *app, Event *e)
+{
+    NtTask *task = i_selected_task(app);
+    char date[NT_DATE_LEN];
+    int64_t current;
+    if (task == NULL)
+    {
+        i_set_status(app, "Select a task first.");
+        unref(e);
+        return;
+    }
+    if (app->model.session.view_date[0] == '\0')
+        nt_today(date);
+    else
+        snprintf(date, sizeof(date), "%s", app->model.session.view_date);
+    current = nt_model_day_seconds(&app->model, task->id, date);
+    app->time_buffer = current;
+    nt_model_set_time(&app->model, task->id, date, 0);
+    i_refresh(app);
+    i_set_status(app, "Time cut to buffer.");
     unref(e);
 }
 
@@ -1314,34 +1345,88 @@ static void i_OnTableDown(App *app, Event *e)
     if (p->button == ekGUI_MOUSE_RIGHT)
     {
         Menu *menu = menu_create();
-        MenuItem *mi_start = menuitem_create();
-        MenuItem *mi_edit = menuitem_create();
-        MenuItem *mi_annotate = menuitem_create();
-        MenuItem *mi_delete = menuitem_create();
-        MenuItem *mi_hide = menuitem_create();
+        MenuItem *mi;
         V2Df pos;
 
-        menuitem_text(mi_start, "Start/Stop");
-        menuitem_OnClick(mi_start, listener(app, i_OnStartStop, App));
-        menu_add_item(menu, mi_start);
+        /* Primary actions */
+        mi = menuitem_create();
+        menuitem_text(mi, "Start/Stop");
+        menuitem_OnClick(mi, listener(app, i_OnStartStop, App));
+        menu_add_item(menu, mi);
 
-        menuitem_text(mi_edit, "Edit Task");
-        menuitem_OnClick(mi_edit, listener(app, i_OnEditTask, App));
-        menu_add_item(menu, mi_edit);
+        mi = menuitem_create();
+        menuitem_text(mi, "Edit...");
+        menuitem_OnClick(mi, listener(app, i_OnEditTask, App));
+        menu_add_item(menu, mi);
 
-        menuitem_text(mi_annotate, "Annotate");
-        menuitem_OnClick(mi_annotate, listener(app, i_OnAnnotate, App));
-        menu_add_item(menu, mi_annotate);
+        mi = menuitem_create();
+        menuitem_text(mi, "Annotate...");
+        menuitem_OnClick(mi, listener(app, i_OnAnnotate, App));
+        menu_add_item(menu, mi);
 
         menu_add_item(menu, menuitem_separator());
 
-        menuitem_text(mi_hide, "Hide Task");
-        menuitem_OnClick(mi_hide, listener(app, i_OnHideTask, App));
-        menu_add_item(menu, mi_hide);
+        /* Time adjustments */
+        {
+            MenuItem *add_item = menuitem_create();
+            Menu *add_menu = menu_create();
+            menuitem_text(add_item, "Add Time");
 
-        menuitem_text(mi_delete, "Delete Task");
-        menuitem_OnClick(mi_delete, listener(app, i_OnDeleteTask, App));
-        menu_add_item(menu, mi_delete);
+            mi = menuitem_create(); menuitem_text(mi, "+1 Minute"); menuitem_OnClick(mi, listener(app, i_OnAdd1m, App)); menu_add_item(add_menu, mi);
+            mi = menuitem_create(); menuitem_text(mi, "+5 Minutes"); menuitem_OnClick(mi, listener(app, i_OnAdd5m, App)); menu_add_item(add_menu, mi);
+            mi = menuitem_create(); menuitem_text(mi, "+30 Minutes"); menuitem_OnClick(mi, listener(app, i_OnAdd30m, App)); menu_add_item(add_menu, mi);
+
+            menuitem_submenu(add_item, &add_menu);
+            menu_add_item(menu, add_item);
+        }
+        {
+            MenuItem *rem_item = menuitem_create();
+            Menu *rem_menu = menu_create();
+            menuitem_text(rem_item, "Remove Time");
+
+            mi = menuitem_create(); menuitem_text(mi, "-1 Minute"); menuitem_OnClick(mi, listener(app, i_OnSub1m, App)); menu_add_item(rem_menu, mi);
+            mi = menuitem_create(); menuitem_text(mi, "-5 Minutes"); menuitem_OnClick(mi, listener(app, i_OnSub5m, App)); menu_add_item(rem_menu, mi);
+            mi = menuitem_create(); menuitem_text(mi, "-30 Minutes"); menuitem_OnClick(mi, listener(app, i_OnSub30m, App)); menu_add_item(rem_menu, mi);
+
+            menuitem_submenu(rem_item, &rem_menu);
+            menu_add_item(menu, rem_item);
+        }
+
+        mi = menuitem_create();
+        menuitem_text(mi, "Set to Zero");
+        menuitem_OnClick(mi, listener(app, i_OnSetZero, App));
+        menu_add_item(menu, mi);
+
+        menu_add_item(menu, menuitem_separator());
+
+        /* Clipboard */
+        mi = menuitem_create();
+        menuitem_text(mi, "Cut Time");
+        menuitem_OnClick(mi, listener(app, i_OnCutTime, App));
+        menu_add_item(menu, mi);
+
+        mi = menuitem_create();
+        menuitem_text(mi, "Copy Time");
+        menuitem_OnClick(mi, listener(app, i_OnCopyTime, App));
+        menu_add_item(menu, mi);
+
+        mi = menuitem_create();
+        menuitem_text(mi, "Paste Time");
+        menuitem_OnClick(mi, listener(app, i_OnPasteTime, App));
+        menu_add_item(menu, mi);
+
+        menu_add_item(menu, menuitem_separator());
+
+        /* Destructive */
+        mi = menuitem_create();
+        menuitem_text(mi, "Hide");
+        menuitem_OnClick(mi, listener(app, i_OnHideTask, App));
+        menu_add_item(menu, mi);
+
+        mi = menuitem_create();
+        menuitem_text(mi, "Delete");
+        menuitem_OnClick(mi, listener(app, i_OnDeleteTask, App));
+        menu_add_item(menu, mi);
 
         {
             V2Df origin = window_get_origin(app->window);
@@ -1350,8 +1435,10 @@ static void i_OnTableDown(App *app, Event *e)
             pos.x = origin.x + frame.pos.x + p->lx;
             pos.y = origin.y + frame.pos.y + row_y;
         }
-        menu_launch(menu, pos);
-        menu_destroy(&menu);
+        if (app->context_menu != NULL)
+            menu_destroy(&app->context_menu);
+        app->context_menu = menu;
+        menu_launch(app->context_menu, pos);
         unref(e);
         return;
     }
@@ -1933,6 +2020,8 @@ static void i_app_destroy(App **app)
     nt_store_close(&(*app)->store);
     if ((*app)->rows != NULL)
         free((*app)->rows);
+    if ((*app)->context_menu != NULL)
+        menu_destroy(&(*app)->context_menu);
     window_destroy(&(*app)->window);
     heap_delete(app, App);
 }
