@@ -334,7 +334,7 @@ void nt_model_init(NtModel *model, NtStore *store)
     memset(model, 0, sizeof(*model));
     model->store = store;
     model->settings.width = 900;
-    model->settings.height = 600;
+    model->settings.height = 460;
     model->settings.auto_save = 1;
     model->settings.animate = 1;
     model->settings.idle_enabled = 1;

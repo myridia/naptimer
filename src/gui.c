@@ -41,6 +41,7 @@ struct _App
     Button *start_button;
     Button *stop_all_button;
     Layout *quick_layout;
+    Layout *main_layout;
     Label *tb_labels[6];
     Button *nav_buttons[3];
 
@@ -66,6 +67,10 @@ struct _App
     time_t last_reminder;
     time_t idle_since;
     int idle_prompt_open;
+    real32_t win_width;
+    real32_t win_height;
+    real32_t table_width;
+    real32_t table_height;
 };
 
 enum
@@ -1183,8 +1188,41 @@ static void i_tick(App *app)
     }
 }
 
+static void i_OnTableResize(App *app, Event *e)
+{
+    const EvSize *p = event_params(e, EvSize);
+    if (p->width > 0.f && p->height > 0.f)
+    {
+        app->table_width = p->width;
+        app->table_height = p->height;
+        if (app->main_layout != NULL)
+            layout_hsize(app->main_layout, 0, p->width + 20.f);
+    }
+    unref(e);
+}
+
+static void i_OnWindowResize(App *app, Event *e)
+{
+    const EvSize *p = event_params(e, EvSize);
+    app->win_width = p->width;
+    app->win_height = p->height;
+    unref(e);
+}
+
 static void i_OnWindowClose(App *app, Event *e)
 {
+    if (app->table_width >= 400.f && app->table_height >= 200.f)
+    {
+        app->model.settings.width = (int)app->table_width;
+        app->model.settings.height = (int)app->table_height;
+        nt_model_save_settings(&app->model);
+    }
+    else if (app->win_width >= 400.f && app->win_height >= 300.f)
+    {
+        app->model.settings.width = (int)app->win_width;
+        app->model.settings.height = (int)app->win_height;
+        nt_model_save_settings(&app->model);
+    }
     nt_timer_autosave(&app->model, time(NULL));
     nt_model_save_session(&app->model);
     osapp_finish();
@@ -1248,6 +1286,7 @@ static App *i_app_create(const char *db_path)
     App *app = heap_new0(App);
     Layout *layout = layout_create(1, 4);
     Layout *toolbar = layout_create(6, 1);
+    app->main_layout = layout;
     Layout *toolbar_row = layout_create(2, 1);
     Layout *footer = layout_create(5, 1);
     Button *btn_start = button_flat();
@@ -1288,6 +1327,7 @@ static App *i_app_create(const char *db_path)
     app->window = window_create(ekWINDOW_STDRES);
     window_title(app->window, "NapTimer");
     window_OnClose(app->window, listener(app, i_OnWindowClose, App));
+    window_OnResize(app->window, listener(app, i_OnWindowResize, App));
 
     app->panel = panel_create();
     app->table = tableview_create();
@@ -1322,7 +1362,15 @@ static App *i_app_create(const char *db_path)
     tableview_header_title(app->table, 4, "Total");
     tableview_column_width(app->table, 4, 110);
     tableview_header_align(app->table, 4, ekCENTER);
-    tableview_size(app->table, s2df(900.f, 460.f));
+    {
+        real32_t tw = 900.f;
+        real32_t th = 460.f;
+        if (app->model.settings.width >= 400)
+            tw = (real32_t)app->model.settings.width;
+        if (app->model.settings.height >= 200)
+            th = (real32_t)app->model.settings.height;
+        tableview_size(app->table, s2df(tw, th));
+    }
 
     i_apply_table_font(app);
 
@@ -1460,13 +1508,19 @@ static App *i_app_create(const char *db_path)
     layout_label(layout, app->status, 0, 3);
     layout_hexpand(layout, 0);
     layout_vexpand(layout, 1);
-    layout_hsize(layout, 0, 900.f);
     layout_margin(layout, 10);
     layout_vmargin(layout, 0, 6);
     layout_vmargin(layout, 2, 6);
+    {
+        real32_t tw = 900.f;
+        if (app->model.settings.width >= 400)
+            tw = (real32_t)app->model.settings.width;
+        layout_hsize(layout, 0, tw + 20.f);
+    }
 
     panel_layout(app->panel, layout);
     window_panel(app->window, app->panel);
+    view_OnSize(cast(app->table, View), listener(app, i_OnTableResize, App));
 
     window_hotkey(app->window, ekKEY_N, ekMKEY_CONTROL, listener(app, i_OnNewTask, App));
     window_hotkey(app->window, ekKEY_E, ekMKEY_CONTROL, listener(app, i_OnEditTask, App));
