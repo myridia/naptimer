@@ -47,17 +47,34 @@ static void i_resolve_db_path(int argc, char *argv[])
 static App *i_create(void)
 {
     uint32_t argc = osapp_argc();
-    char **argv = (char **)osapp_argv();
+    char **argv = (char **)calloc(argc + 1, sizeof(char *));
+    uint32_t i;
     int cli;
+    int rc = 0;
+
+    for (i = 0; i < argc; i += 1)
+    {
+        char_t buf[1024];
+        osapp_argv(i, buf, sizeof(buf));
+        argv[i] = (char *)nt_strdup(buf);
+    }
+    argv[argc] = NULL;
 
     i_resolve_db_path((int)argc, argv);
     cli = nt_cli_is_cli((int)argc, argv);
     if (cli)
     {
-        int rc = nt_cli_dispatch((int)argc, argv, i_db_path);
+        rc = nt_cli_dispatch((int)argc, argv, i_db_path);
+        for (i = 0; i < argc; i += 1)
+            free(argv[i]);
+        free(argv);
         exit(rc);
         return NULL;
     }
+
+    for (i = 0; i < argc; i += 1)
+        free(argv[i]);
+    free(argv);
 
     return nt_gui_create(i_db_path);
 }
