@@ -1,15 +1,43 @@
 # AGENTS.md — naptimer
 
 ## What this is
-Stub repository at `~/webs/github/naptimer`. No source code yet. The name indicates a nap-timer program; the checked-in `.gitignore` is the standard C/C++ build-artifact template, so C or C++ is the likely intended stack, but nothing in the repo confirms it yet.
+
+Cross-platform desktop time tracker, ported from `github/gtimer` (GTK 4/Libadwaita C) to NAppGUI. Keeps gtimer's daily-total model and core workflow: projects, tasks, tags, annotations, timers, reports, CLI, and preferences.
+
+## Stack
+
+- C (C99)
+- [NAppGUI](https://nappgui.com) SDK at `/usr/local/nappgui`
+- SQLite3 for local storage
+- No network code
+
+## Build / run
+
+The user builds and runs (`./build.sh`, or `./ask.sh` task 4). The agent should not assume the NAppGUI SDK or sqlite3 headers are present in every environment.
 
 ## Layout
-- `README.md` — title plus the `naptimer.svg` logo (first line).
-- `LICENSE` — GNU GPL v3.
-- `.gitignore` — C/C++ objects, libraries, executables, debug files.
-- `naptimer.svg` — README logo.
 
-## Conventions
-- GPL-3.0: keep `LICENSE` and any source-file license notices intact.
-- No `ask.sh` yet. When repeatable commands appear, add one at the root in the workspace's standard task-menu shape.
-- When source is added, document the actual stack, file layout, and build/run commands here, replacing the "likely C/C++" note above.
+- `src/main.c` — entry point, DB path resolution, CLI/GUI dispatch, `osmain_sync`
+- `src/gui.c/.h` — NAppGUI window, table, filter, quick entry, day navigation, menus, dialogs, hotkeys
+- `src/cli.c/.h` — gtimer-compatible CLI options and output
+- `src/model.c/.h` — in-memory model backed by JSON docs; CRUD, tags, annotations, day totals, import/export
+- `src/store.c/.h` — SQLite `docs(id,_rev,doc)` storage, CouchDB-style `_rev`, backup/restore/vacuum
+- `src/json.c/.h` — minimal JSON parser/writer used for docs and exports
+- `src/timer.c/.h` — timer start/stop/toggle, autosave, midnight splitting, pause/resume
+- `src/idle.c/.h` — portable idle detection
+- `src/report.c/.h` — text/HTML report generation
+- `src/util.c/.h` — strings, dates, paths, file helpers
+
+## Data conventions
+
+- SQLite table is exactly `docs(id TEXT PRIMARY KEY NOT NULL, _rev TEXT NOT NULL, doc TEXT NOT NULL)`.
+- Every persisted app object is a JSON document in `doc` with a `type` field.
+- `_rev` is CouchDB-style `N-hash` and increments on every save.
+- Do not add relational app tables; keep data CouchDB-sync friendly.
+- No network access, ever.
+
+## Porting notes
+
+- gtimer source is authoritative where old gtimer docs conflict.
+- Preserve gtimer behavior where practical, but document intentional differences.
+- `ask.d/` contains install/build helper scripts; `ask.sh` is the task runner.
