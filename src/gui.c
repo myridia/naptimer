@@ -1310,7 +1310,7 @@ static App *i_app_create(const char *db_path)
     tableview_column_width(app->table, 0, 160);
     tableview_new_column_text(app->table);
     tableview_header_title(app->table, 1, "Task");
-    tableview_column_width(app->table, 1, 380);
+    tableview_column_width(app->table, 1, 340);
     tableview_new_column_text(app->table);
     tableview_header_title(app->table, 2, "Tags");
     tableview_column_width(app->table, 2, 180);
@@ -1322,9 +1322,19 @@ static App *i_app_create(const char *db_path)
     tableview_header_title(app->table, 4, "Total");
     tableview_column_width(app->table, 4, 110);
     tableview_header_align(app->table, 4, ekCENTER);
-    tableview_size(app->table, s2df(940.f, 460.f));
+    tableview_size(app->table, s2df(900.f, 460.f));
 
     i_apply_table_font(app);
+
+    {
+        uint32_t i;
+        for (i = 0; i < 5; i += 1)
+        {
+            int w = app->model.settings.col_widths[i];
+            if (w >= 40 && w <= 2000)
+                tableview_column_width(app->table, i, (real32_t)w);
+        }
+    }
 
     button_image(btn_start, gui_image(START_PNG));
     button_tooltip(btn_start, "Start/Stop timing");
@@ -1450,6 +1460,7 @@ static App *i_app_create(const char *db_path)
     layout_label(layout, app->status, 0, 3);
     layout_hexpand(layout, 0);
     layout_vexpand(layout, 1);
+    layout_hsize(layout, 0, 900.f);
     layout_margin(layout, 10);
     layout_vmargin(layout, 0, 6);
     layout_vmargin(layout, 2, 6);

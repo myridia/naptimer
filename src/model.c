@@ -99,6 +99,11 @@ void nt_model_save_settings(NtModel *model)
     nt_jb_puts(&buf, ",\"reminder_interval\":"); nt_jb_int(&buf, s->reminder_interval);
     nt_jb_puts(&buf, ",\"next_id\":"); nt_jb_int(&buf, s->next_id);
     nt_jb_puts(&buf, ",\"ui_font_size\":"); nt_jb_int(&buf, s->ui_font_size);
+    nt_jb_puts(&buf, ",\"col_w0\":"); nt_jb_int(&buf, s->col_widths[0]);
+    nt_jb_puts(&buf, ",\"col_w1\":"); nt_jb_int(&buf, s->col_widths[1]);
+    nt_jb_puts(&buf, ",\"col_w2\":"); nt_jb_int(&buf, s->col_widths[2]);
+    nt_jb_puts(&buf, ",\"col_w3\":"); nt_jb_int(&buf, s->col_widths[3]);
+    nt_jb_puts(&buf, ",\"col_w4\":"); nt_jb_int(&buf, s->col_widths[4]);
     i_end_doc(&buf);
     i_save(model, "settings", &buf);
 }
@@ -228,6 +233,11 @@ static void i_load_cb(const char *id, const char *rev, const char *doc, void *co
         s->reminder_interval = (int)nt_json_int(nt_json_get(json, "reminder_interval"), 15);
         s->next_id = (int)nt_json_int(nt_json_get(json, "next_id"), 0);
         s->ui_font_size = (int)nt_json_int(nt_json_get(json, "ui_font_size"), 0);
+        s->col_widths[0] = (int)nt_json_int(nt_json_get(json, "col_w0"), 0);
+        s->col_widths[1] = (int)nt_json_int(nt_json_get(json, "col_w1"), 0);
+        s->col_widths[2] = (int)nt_json_int(nt_json_get(json, "col_w2"), 0);
+        s->col_widths[3] = (int)nt_json_int(nt_json_get(json, "col_w3"), 0);
+        s->col_widths[4] = (int)nt_json_int(nt_json_get(json, "col_w4"), 0);
     }
     else if (strcmp(type, "session") == 0)
     {
