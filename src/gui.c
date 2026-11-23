@@ -310,7 +310,9 @@ static bool_t i_prompt_text(App *app, const char_t *title, const char_t *prompt_
     layout_layout(layout, buttons, 0, 2);
     layout_button(buttons, ok, 1, 0);
     layout_button(buttons, cancel, 2, 0);
+    layout_hexpand(layout, 0);
     layout_hexpand(buttons, 0);
+    layout_hsize(layout, 0, 360);
     layout_hmargin(buttons, 1, 6);
     layout_vmargin(layout, 0, 8);
     layout_vmargin(layout, 1, 8);
