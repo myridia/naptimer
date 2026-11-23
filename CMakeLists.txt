@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(Naptimer)
+project(NapTimer)
 
 find_package(nappgui REQUIRED)
 find_package(SQLite3 REQUIRED)

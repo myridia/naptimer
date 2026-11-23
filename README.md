@@ -1,8 +1,8 @@
-<img src="naptimer.svg" alt="Naptimer logo" width="120">
+<img src="naptimer.svg" alt="NapTimer logo" width="120">
 
-# Naptimer
+# NapTimer
 
-Naptimer is a cross-platform desktop time tracker written in C with [NAppGUI](https://nappgui.com/). It is a port of [gtimer](https://github.com/myridia/gtimer), keeping the daily-total time tracking model while replacing GTK/Libadwaita with NAppGUI and storing all application data as CouchDB-ready JSON documents.
+NapTimer is a cross-platform desktop time tracker written in C with [NAppGUI](https://nappgui.com/). It is a port of [gtimer](https://github.com/myridia/gtimer), keeping the daily-total time tracking model while replacing GTK/Libadwaita with NAppGUI and storing all application data as CouchDB-ready JSON documents.
 
 ## Features
 

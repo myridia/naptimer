@@ -885,7 +885,7 @@ int nt_cli_dispatch(int argc, char *argv[], const char *db_path)
         return 0;
 
     if (!opts.quiet)
-        printf("Naptimer %s\n", NAPTIMER_VERSION);
+        printf("NapTimer %s\n", NAPTIMER_VERSION);
 
     error[0] = '\0';
     if (nt_store_open(db_path, &store, error, sizeof(error)) != 0)

@@ -1049,8 +1049,8 @@ static void i_OnAbout(App *app, Event *e)
     prompt.edit = NULL;
     prompt.popup = NULL;
 
-    window_title(window, "About Naptimer");
-    label_text(text, "Naptimer\n\nGTK-free time tracker ported to NAppGUI.\nData is stored as CouchDB-ready JSON docs in SQLite.");
+    window_title(window, "About NapTimer");
+    label_text(text, "NapTimer\n\nGTK-free time tracker ported to NAppGUI.\nData is stored as CouchDB-ready JSON docs in SQLite.");
     label_multiline(text, TRUE);
     button_text(ok, "OK");
     button_OnClick(ok, listener(&prompt, i_OnPromptOk, Prompt));
@@ -1248,6 +1248,7 @@ static App *i_app_create(const char *db_path)
     App *app = heap_new0(App);
     Layout *layout = layout_create(1, 4);
     Layout *toolbar = layout_create(6, 1);
+    Layout *toolbar_row = layout_create(2, 1);
     Layout *footer = layout_create(5, 1);
     Button *btn_start = button_flat();
     Button *btn_stop = button_flat();
@@ -1285,7 +1286,7 @@ static App *i_app_create(const char *db_path)
     gui_language("");
 
     app->window = window_create(ekWINDOW_STDRES);
-    window_title(app->window, "Naptimer");
+    window_title(app->window, "NapTimer");
     window_OnClose(app->window, listener(app, i_OnWindowClose, App));
 
     app->panel = panel_create();
@@ -1302,13 +1303,14 @@ static App *i_app_create(const char *db_path)
     tableview_OnData(app->table, listener(app, i_OnTableData, App));
     tableview_OnRowClick(app->table, listener(app, i_OnRowClick, App));
     tableview_header_resizable(app->table, TRUE);
+    tableview_header_visible(app->table, TRUE);
     tableview_row_height(app->table, (uint32_t)(i_ui_font_size(app) + 16.f));
     tableview_new_column_text(app->table);
     tableview_header_title(app->table, 0, "Project");
     tableview_column_width(app->table, 0, 160);
     tableview_new_column_text(app->table);
     tableview_header_title(app->table, 1, "Task");
-    tableview_column_width(app->table, 1, 260);
+    tableview_column_width(app->table, 1, 380);
     tableview_new_column_text(app->table);
     tableview_header_title(app->table, 2, "Tags");
     tableview_column_width(app->table, 2, 180);
@@ -1440,7 +1442,9 @@ static App *i_app_create(const char *db_path)
     layout_hmargin(footer, 3, 10);
     layout_halign(footer, 4, 0, ekRIGHT);
 
-    layout_layout(layout, toolbar, 0, 0);
+    layout_layout(toolbar_row, toolbar, 0, 0);
+    layout_hexpand(toolbar_row, 1);
+    layout_layout(layout, toolbar_row, 0, 0);
     layout_tableview(layout, app->table, 0, 1);
     layout_layout(layout, footer, 0, 2);
     layout_label(layout, app->status, 0, 3);
@@ -1754,7 +1758,7 @@ static App *i_app_create(const char *db_path)
         menuitem_text(help_item, "Help");
         {
             MenuItem *mi = menuitem_create();
-            menuitem_text(mi, "About Naptimer");
+            menuitem_text(mi, "About NapTimer");
             menuitem_OnClick(mi, listener(app, i_OnAbout, App));
             menu_add_item(help_menu, mi);
         }

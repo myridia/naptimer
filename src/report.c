@@ -116,12 +116,12 @@ int nt_report_generate(const NtModel *model, NtReportType type, NtReportFormat f
     if (format == NT_REPORT_HTML)
     {
         nt_jb_puts(&buf, "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
-                         "<title>Naptimer Report</title><style>"
+                         "<title>NapTimer Report</title><style>"
                          "body{font-family:sans-serif;margin:2rem;}h1{font-size:1.4rem;}"
                          "table{border-collapse:collapse;min-width:32rem;}"
                          "th,td{padding:.35rem .8rem;text-align:left;border-bottom:1px solid #ddd;}"
                          "td.dur{font-family:monospace;white-space:pre;}</style></head><body>");
-        nt_jb_puts(&buf, "<h1>Naptimer Report</h1><h3>Period: ");
+        nt_jb_puts(&buf, "<h1>NapTimer Report</h1><h3>Period: ");
         nt_jb_puts(&buf, start);
         nt_jb_puts(&buf, " to ");
         nt_jb_puts(&buf, end);
@@ -145,7 +145,7 @@ int nt_report_generate(const NtModel *model, NtReportType type, NtReportFormat f
     }
     else
     {
-        nt_jb_puts(&buf, "Naptimer Report\nPeriod: ");
+        nt_jb_puts(&buf, "NapTimer Report\nPeriod: ");
         nt_jb_puts(&buf, start);
         nt_jb_puts(&buf, " to ");
         nt_jb_puts(&buf, end);

@@ -333,9 +333,9 @@ static void i_base_path(char *out, size_t size, int config)
     if (env == NULL || env[0] == '\0')
         env = getenv("USERPROFILE");
     if (env != NULL && env[0] != '\0')
-        snprintf(base, sizeof(base), "%s\\Naptimer", env);
+        snprintf(base, sizeof(base), "%s\\NapTimer", env);
     else
-        snprintf(base, sizeof(base), "Naptimer");
+        snprintf(base, sizeof(base), "NapTimer");
 #else
     env = config ? getenv("XDG_CONFIG_HOME") : getenv("XDG_DATA_HOME");
     if (env == NULL || env[0] == '\0')

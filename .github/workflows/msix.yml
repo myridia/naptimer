@@ -41,11 +41,11 @@ jobs:
           }
 
           $caCert = Get-ChildItem -Path $loc | Where-Object { $_.Subject -eq "CN=Myridia" }
-          $cert = New-SelfSignedCertificate  -Signer $caCert -Subject "CN=Naptimer" -CertStoreLocation $loc -KeyExportPolicy Exportable -KeyUsage DigitalSignature -FriendlyName "Naptimer Certificate" -Type CodeSigningCert
+          $cert = New-SelfSignedCertificate  -Signer $caCert -Subject "CN=NapTimer" -CertStoreLocation $loc -KeyExportPolicy Exportable -KeyUsage DigitalSignature -FriendlyName "NapTimer Certificate" -Type CodeSigningCert
           if ($cert) {
             $certp = "Cert:\CurrentUser\My\$($cert.Thumbprint)"
-            Export-PfxCertificate  -cert $certp  -FilePath ".\Naptimer.pfx" -Password $pass -Force
-            Export-Certificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath ".\Naptimer.cer" -Force
+            Export-PfxCertificate  -cert $certp  -FilePath ".\NapTimer.pfx" -Password $pass -Force
+            Export-Certificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath ".\NapTimer.cer" -Force
             certutil -addstore Root ".\Myridia.cer"
           } else {
             Write-Error "Certificate generation failed."
@@ -54,7 +54,7 @@ jobs:
       - name: Sign
         run: |
           dir
-          $cert2 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\Naptimer.pfx", "passpass")
+          $cert2 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\NapTimer.pfx", "passpass")
           Set-AuthenticodeSignature -FilePath ".\naptimer.exe" -Certificate $cert2
 
       - name: Packing
@@ -63,8 +63,8 @@ jobs:
           mkdir app
           cp naptimer.exe app\
           cd app
-          winapp manifest generate --executable .\naptimer.exe --package-name "Naptimer" --publisher-name "Naptimer"
-          winapp pack . --cert "..\Naptimer.pfx" --cert-password "passpass" --output "naptimer.msix" --name "Naptimer"
+          winapp manifest generate --executable .\naptimer.exe --package-name "NapTimer" --publisher-name "NapTimer"
+          winapp pack . --cert "..\NapTimer.pfx" --cert-password "passpass" --output "naptimer.msix" --name "NapTimer"
           dir
 
       - name: Release
@@ -92,7 +92,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: |
-            Naptimer.cer
+            NapTimer.cer
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
@@ -102,7 +102,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: |
-            Naptimer.pfx
+            NapTimer.pfx
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
