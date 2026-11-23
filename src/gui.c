@@ -1191,7 +1191,7 @@ static void i_tick(App *app)
 static void i_OnTableResize(App *app, Event *e)
 {
     const EvSize *p = event_params(e, EvSize);
-    if (p->width >= 700.f && p->height >= 300.f)
+    if (p->width > 0.f && p->height > 0.f)
     {
         app->table_width = p->width;
         app->table_height = p->height;
@@ -1281,91 +1281,6 @@ static void i_OnFontSize(App *app, Event *e)
     unref(e);
 }
 
-static void i_OnTableDown(App *app, Event *e)
-{
-    const EvMouse *p = event_params(e, EvMouse);
-    View *view = cast(app->table, View);
-    V2Df vpos;
-    real32_t header_h = 28.f;
-    real32_t row_h = i_ui_font_size(app) + 16.f;
-    uint32_t row;
-
-    view_viewport(view, &vpos, NULL);
-
-    if (p->y < header_h)
-    {
-        unref(e);
-        return;
-    }
-
-    row = (uint32_t)(((p->y + vpos.y) - header_h) / row_h);
-    if (row >= app->nrows)
-    {
-        unref(e);
-        return;
-    }
-
-    {
-        uint32_t sel = row;
-        tableview_select(app->table, &sel, 1);
-        tableview_update(app->table);
-    }
-
-    if (p->button == ekGUI_MOUSE_RIGHT)
-    {
-        Menu *menu = menu_create();
-        MenuItem *mi_start = menuitem_create();
-        MenuItem *mi_edit = menuitem_create();
-        MenuItem *mi_annotate = menuitem_create();
-        MenuItem *mi_delete = menuitem_create();
-        MenuItem *mi_hide = menuitem_create();
-        V2Df pos;
-
-        menuitem_text(mi_start, "Start/Stop");
-        menuitem_OnClick(mi_start, listener(app, i_OnStartStop, App));
-        menu_add_item(menu, mi_start);
-
-        menuitem_text(mi_edit, "Edit Task");
-        menuitem_OnClick(mi_edit, listener(app, i_OnEditTask, App));
-        menu_add_item(menu, mi_edit);
-
-        menuitem_text(mi_annotate, "Annotate");
-        menuitem_OnClick(mi_annotate, listener(app, i_OnAnnotate, App));
-        menu_add_item(menu, mi_annotate);
-
-        menu_add_item(menu, menuitem_separator());
-
-        menuitem_text(mi_hide, "Hide Task");
-        menuitem_OnClick(mi_hide, listener(app, i_OnHideTask, App));
-        menu_add_item(menu, mi_hide);
-
-        menuitem_text(mi_delete, "Delete Task");
-        menuitem_OnClick(mi_delete, listener(app, i_OnDeleteTask, App));
-        menu_add_item(menu, mi_delete);
-
-        {
-            R2Df frame = window_control_frame(app->window, guicontrol(app->table));
-            pos.x = frame.pos.x + p->lx;
-            pos.y = frame.pos.y + p->ly;
-        }
-        menu_launch(menu, pos);
-        menu_destroy(&menu);
-        unref(e);
-        return;
-    }
-
-    if (p->button == ekGUI_MOUSE_LEFT)
-    {
-        /* Keep basic row click behavior (start/stop). Note: this overrides
-           tableview's internal down handler, so header column-resize drag
-           is not handled here. */
-        i_OnStartStop(app, e);
-        return;
-    }
-
-    unref(e);
-}
-
 static App *i_app_create(const char *db_path)
 {
     App *app = heap_new0(App);
@@ -1426,6 +1341,7 @@ static App *i_app_create(const char *db_path)
     app->quick_layout = NULL;
 
     tableview_OnData(app->table, listener(app, i_OnTableData, App));
+    tableview_OnRowClick(app->table, listener(app, i_OnRowClick, App));
     tableview_header_resizable(app->table, TRUE);
     tableview_header_visible(app->table, TRUE);
     tableview_row_height(app->table, (uint32_t)(i_ui_font_size(app) + 16.f));
@@ -1605,7 +1521,6 @@ static App *i_app_create(const char *db_path)
     panel_layout(app->panel, layout);
     window_panel(app->window, app->panel);
     view_OnSize(cast(app->table, View), listener(app, i_OnTableResize, App));
-    view_OnDown(cast(app->table, View), listener(app, i_OnTableDown, App));
 
     window_hotkey(app->window, ekKEY_N, ekMKEY_CONTROL, listener(app, i_OnNewTask, App));
     window_hotkey(app->window, ekKEY_E, ekMKEY_CONTROL, listener(app, i_OnEditTask, App));
