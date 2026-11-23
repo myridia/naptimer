@@ -1,30 +1,52 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
 
-# Clean NapTimer SQLite DB for a fresh start.
-# Default location matches src/util.c: $XDG_DATA_HOME/naptimer/naptimer.db
-# or ~/.local/share/naptimer/naptimer.db
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
-DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-DB_DIR="$DATA_HOME/naptimer"
-DB_FILE="$DB_DIR/naptimer.db"
+show_menu() {
+  printf "%s\n" '  ┌─────┬──────────────────────────────────────────────┐'
+  printf "%s\n" '  │  ID │ Description                                  │'
+  printf "%s\n" '  ├─────┼──────────────────────────────────────────────┤'
+  printf "%s\n" '  │  1  │ Install NAppGUI - Windows (C:/nappgui)       │'
+  printf "%s\n" '  │  2  │ Install NAppGUI - macOS (/usr/local/nappgui) │'
+  printf "%s\n" '  │  3  │ Install NAppGUI - Linux (/usr/local/nappgui) │'
+  printf "%s\n" '  │  4  │ Build & run app (./build.sh)                 │'
+  printf "%s\n" '  │  5  │ Clean SQLite DB (fresh start)                │'
+  printf "%s\n" '  │  0  │ Exit                                         │'
+  printf "%s\n" '  └─────┴──────────────────────────────────────────────┘'
+}
 
-if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
-  echo "Usage: $0 [--db /path/to/naptimer.db]"
-  echo "Removes NapTimer SQLite DB (and -wal/-shm/-journal files) for a fresh start."
-  exit 0
-fi
+printf "\n  naptimer — Task Runner\n\n"
 
-if [ "${1:-}" = "--db" ] && [ -n "${2:-}" ]; then
-  DB_FILE="$2"
-  DB_DIR="$(dirname "$DB_FILE")"
-fi
+while true; do
+  show_menu
 
-for f in "$DB_FILE" "$DB_FILE-wal" "$DB_FILE-shm" "$DB_FILE-journal" "$DB_FILE.restoring"; do
-  if [ -e "$f" ]; then
-    rm -f "$f"
-    echo "removed $f"
+  printf "  Enter Task ID: "
+  read task || exit 0
+
+  if [ "$task" = "0" ]; then
+    printf "  Goodbye!\n"
+    exit 0
   fi
-done
 
-echo "NapTimer DB cleaned: $DB_FILE"
+  if [ "$task" = "1" ]; then
+    printf "  ...installing NAppGUI for Windows\n"
+    "$SCRIPT_DIR/ask.d/install_nappgui_windows.sh"
+  elif [ "$task" = "2" ]; then
+    printf "  ...installing NAppGUI for macOS\n"
+    "$SCRIPT_DIR/ask.d/install_nappgui_macos.sh"
+  elif [ "$task" = "3" ]; then
+    printf "  ...installing NAppGUI for Linux\n"
+    "$SCRIPT_DIR/ask.d/install_nappgui_linux.sh"
+  elif [ "$task" = "4" ]; then
+    printf "  ...building and running the app\n"
+    "$SCRIPT_DIR/ask.d/build.sh"
+  elif [ "$task" = "5" ]; then
+    printf "  ...cleaning NapTimer DB\n"
+    "$SCRIPT_DIR/ask.d/clean_db.sh"
+  else
+    printf "  Unknown task: %s\n" "$task"
+  fi
+
+  sleep 2
+  printf "\n"
+done
