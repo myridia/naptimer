@@ -1225,7 +1225,7 @@ static App *i_app_create(const char *db_path)
     layout_button(toolbar, stop_all, 2, 0);
     layout_label(toolbar, filter_label, 3, 0);
     layout_edit(toolbar, app->filter, 4, 0);
-    layout_hexpand(toolbar, 6);
+    layout_hexpand(toolbar, 4);
     layout_hmargin(toolbar, 0, 6);
     layout_hmargin(toolbar, 1, 6);
     layout_hmargin(toolbar, 2, 10);
@@ -1259,7 +1259,10 @@ static App *i_app_create(const char *db_path)
     layout_tableview(layout, app->table, 0, 2);
     layout_layout(layout, footer, 0, 3);
     layout_label(layout, app->status, 0, 4);
+    layout_hexpand(layout, 0);
     layout_vexpand(layout, 2);
+    layout_hsize(layout, 0, 940);
+    layout_vsize(layout, 2, 460);
     layout_margin(layout, 10);
     layout_vmargin(layout, 0, 6);
     layout_vmargin(layout, 1, 6);
@@ -1267,7 +1270,6 @@ static App *i_app_create(const char *db_path)
 
     panel_layout(app->panel, layout);
     window_panel(app->window, app->panel);
-    /* Window size is controlled by layout; NAppGUI client size setter varies by version. */
 
     window_hotkey(app->window, ekKEY_N, ekMKEY_CONTROL, listener(app, i_OnNewTask, App));
     window_hotkey(app->window, ekKEY_E, ekMKEY_CONTROL, listener(app, i_OnEditTask, App));
