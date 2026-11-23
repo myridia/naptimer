@@ -1,0 +1,111 @@
+name: Msix
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+  packages: none
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+    if: github.repository_owner == 'myridia'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependencies
+        run: |
+           winget install microsoft.winappcli --source winget
+
+      - name: Download_exe
+        run: |
+         curl -L "https://github.com/myridia/naptimer/releases/download/main/naptimer.exe" -o "./naptimer.exe"
+
+      - name: Certificate
+        run: |
+          $pass = ConvertTo-SecureString "passpass" -AsPlainText -Force
+          $loc = "Cert:\CurrentUser\My"
+
+          $cert = New-SelfSignedCertificate -Subject "CN=Myridia" -CertStoreLocation $loc -KeyExportPolicy Exportable -KeyUsage CertSign,CrlSign -FriendlyName "Myridia Root CA"
+          if ($cert) {
+            $certp = "Cert:\CurrentUser\My\$($cert.Thumbprint)"
+            Export-PfxCertificate  -cert $certp  -FilePath ".\Myridia.pfx" -Password $pass -Force
+            Export-Certificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath ".\Myridia.cer" -Force
+            certutil -addstore Root ".\Myridia.cer"
+
+          } else {
+            Write-Error "Certificate generation failed."
+          }
+
+          $caCert = Get-ChildItem -Path $loc | Where-Object { $_.Subject -eq "CN=Myridia" }
+          $cert = New-SelfSignedCertificate  -Signer $caCert -Subject "CN=Naptimer" -CertStoreLocation $loc -KeyExportPolicy Exportable -KeyUsage DigitalSignature -FriendlyName "Naptimer Certificate" -Type CodeSigningCert
+          if ($cert) {
+            $certp = "Cert:\CurrentUser\My\$($cert.Thumbprint)"
+            Export-PfxCertificate  -cert $certp  -FilePath ".\Naptimer.pfx" -Password $pass -Force
+            Export-Certificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath ".\Naptimer.cer" -Force
+            certutil -addstore Root ".\Myridia.cer"
+          } else {
+            Write-Error "Certificate generation failed."
+          }
+
+      - name: Sign
+        run: |
+          dir
+          $cert2 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\Naptimer.pfx", "passpass")
+          Set-AuthenticodeSignature -FilePath ".\naptimer.exe" -Certificate $cert2
+
+      - name: Packing
+        run: |
+          dir
+          mkdir app
+          cp naptimer.exe app\
+          cd app
+          winapp manifest generate --executable .\naptimer.exe --package-name "Naptimer" --publisher-name "Naptimer"
+          winapp pack . --cert "..\Naptimer.pfx" --cert-password "passpass" --output "naptimer.msix" --name "Naptimer"
+          dir
+
+      - name: Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: |
+            app/naptimer.msix
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+
+      - name: Release_cert
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: |
+            Myridia.cer
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+
+      - name: Release_cert2
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: |
+            Naptimer.cer
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+
+      - name: Release_cert3
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: |
+            Naptimer.pfx
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true

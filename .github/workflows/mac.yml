@@ -1,0 +1,46 @@
+name: Mac
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+  packages: none
+
+jobs:
+  build:
+    if: github.repository_owner == 'myridia'
+    runs-on: macos-15
+    steps:
+       - name: Nappgui
+         run: |
+          git clone --depth 1 https://github.com/frang75/nappgui_src.git
+          cd nappgui_src
+          cmake --version
+          cmake -G Xcode -S . -B build -DNAPPGUI_DEMO=NO -DDEPLOYMENT_TARGET_OSX=14.0
+          cmake --build build --config Release -j 4
+          sudo cmake --install build --config Release --prefix /usr/local/nappgui
+
+       - name: Checkout
+         uses: actions/checkout@v4
+
+       - name: Build
+         run: |
+           cmake -G Xcode -S . -B build -DCMAKE_INSTALL_PREFIX=/usr/local/nappgui -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DDEPLOYMENT_TARGET_OSX=14.0
+           cmake --build build --config Release
+           ls build/Release/bin/
+           ls build/Release/bin/naptimer.app
+           cd build/Release/bin/
+           hdiutil create -volname "naptimer" -srcfolder "naptimer.app" -ov -format UDZO "naptimer-arm64.dmg"
+
+       - name: Release
+         uses: svenstaro/upload-release-action@v2
+         with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: 'build/Release/bin/naptimer-arm64.dmg'
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true

@@ -1,0 +1,24 @@
+Source: naptimer
+Section: utils
+Priority: optional
+Maintainer: veto <info@myridia.com>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake,
+ build-essential,
+ pkg-config,
+ libgtk-3-dev,
+ libsqlite3-dev,
+Standards-Version: 4.7.2
+Homepage: https://github.com/myridia/naptimer
+
+Package: naptimer
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: cross-platform desktop time tracker with CouchDB-ready SQLite storage
+ Naptimer is an NAppGUI port of gtimer. It tracks time by task with
+ daily totals, projects, tags, annotations, reports, and a CLI. All app
+ data is stored as JSON documents in a single SQLite docs table.

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Alarm clock with sleep marks">
+  <circle cx="80" cy="92" r="46" fill="#f6ecd7" stroke="#3a2f2a" stroke-width="6"/>
+  <circle cx="46" cy="42" r="12" fill="#d98b6a" stroke="#3a2f2a" stroke-width="5"/>
+  <circle cx="114" cy="42" r="12" fill="#d98b6a" stroke="#3a2f2a" stroke-width="5"/>
+  <path d="M40 52 L58 62 M120 52 L102 62" stroke="#3a2f2a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M80 92 L80 66 M80 92 L100 104" stroke="#3a2f2a" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="80" cy="92" r="4" fill="#3a2f2a"/>
+  <path d="M60 128 Q80 146 100 128" fill="none" stroke="#3a2f2a" stroke-width="5" stroke-linecap="round"/>
+  <text x="116" y="72" font-family="Georgia, serif" font-size="18" fill="#3a2f2a">z</text>
+  <text x="130" y="52" font-family="Georgia, serif" font-size="26" fill="#3a2f2a">Z</text>
+</svg>
