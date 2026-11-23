@@ -3,7 +3,9 @@
 #include "util.h"
 
 #include <nappgui.h>
+#include <osapp/osmain.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static char i_db_path[NT_PATH_LEN];
@@ -44,6 +46,19 @@ static void i_resolve_db_path(int argc, char *argv[])
 
 static App *i_create(void)
 {
+    uint32_t argc = osapp_argc();
+    char **argv = (char **)osapp_argv();
+    int cli;
+
+    i_resolve_db_path((int)argc, argv);
+    cli = nt_cli_is_cli((int)argc, argv);
+    if (cli)
+    {
+        int rc = nt_cli_dispatch((int)argc, argv, i_db_path);
+        exit(rc);
+        return NULL;
+    }
+
     return nt_gui_create(i_db_path);
 }
 
@@ -57,15 +72,4 @@ static void i_update(App *app, const real64_t prtime, const real64_t ctime)
     nt_gui_update(app, prtime, ctime);
 }
 
-int main(int argc, char *argv[])
-{
-    int cli;
-
-    i_resolve_db_path(argc, argv);
-    cli = nt_cli_is_cli(argc, argv);
-    if (cli)
-        return nt_cli_dispatch(argc, argv, i_db_path);
-
-    osmain_sync(0.25, i_create, i_destroy, i_update, "", App);
-    return 0;
-}
+osmain_sync(0.25, i_create, i_destroy, i_update, "", App)
