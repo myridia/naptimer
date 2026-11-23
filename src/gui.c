@@ -278,7 +278,7 @@ static void i_OnPromptCancel(Prompt *prompt, Event *e)
     unref(e);
 }
 
-static bool_t i_prompt_text(App *app, const char_t *title, const char_t *label_text, const char_t *initial, char *out, size_t out_size)
+static bool_t i_prompt_text(App *app, const char_t *title, const char_t *prompt_label, const char_t *initial, char *out, size_t out_size)
 {
     Window *window = window_create(ekWINDOW_TITLE | ekWINDOW_CLOSE | ekWINDOW_ESC);
     Layout *layout = layout_create(1, 3);
@@ -298,9 +298,8 @@ static bool_t i_prompt_text(App *app, const char_t *title, const char_t *label_t
     prompt.accepted = FALSE;
 
     window_title(window, title);
-    label_text(label, label_text);
+    label_text(label, prompt_label);
     edit_text(edit, initial != NULL ? initial : "");
-    edit_width(edit, 360);
     button_text(ok, "OK");
     button_text(cancel, "Cancel");
     button_OnClick(ok, listener(&prompt, i_OnPromptOk, Prompt));
@@ -864,7 +863,7 @@ static void i_OnReport(App *app, Event *e)
 
     nt_today(to);
     nt_date_shift(to, -6, from);
-    file = comwin_save_file(app->window, "Save Report", types, 2, NULL, NULL);
+    file = comwin_save_file(app->window, types, 2, NULL);
     if (file == NULL)
     {
         unref(e);
@@ -893,7 +892,7 @@ static void i_OnReport(App *app, Event *e)
 static void i_OnExportJson(App *app, Event *e)
 {
     const char_t *types[] = {"json"};
-    const char_t *file = comwin_save_file(app->window, "Export JSON", types, 1, NULL, NULL);
+    const char_t *file = comwin_save_file(app->window, types, 1, NULL);
     if (file != NULL)
     {
         if (nt_model_export_json(&app->model, file) == 0)
@@ -907,7 +906,7 @@ static void i_OnExportJson(App *app, Event *e)
 static void i_OnExportCsv(App *app, Event *e)
 {
     const char_t *types[] = {"csv"};
-    const char_t *file = comwin_save_file(app->window, "Export CSV", types, 1, NULL, NULL);
+    const char_t *file = comwin_save_file(app->window, types, 1, NULL);
     if (file != NULL)
     {
         if (nt_model_export_csv(&app->model, file) == 0)
@@ -921,7 +920,7 @@ static void i_OnExportCsv(App *app, Event *e)
 static void i_OnImportCsv(App *app, Event *e)
 {
     const char_t *types[] = {"csv"};
-    const char_t *file = comwin_open_file(app->window, "Import CSV", types, 1, NULL, NULL);
+    const char_t *file = comwin_open_file(app->window, types, 1, NULL);
     if (file != NULL)
     {
         char error[256];
@@ -940,7 +939,7 @@ static void i_OnImportCsv(App *app, Event *e)
 static void i_OnBackup2(App *app, Event *e)
 {
     const char_t *types[] = {"db"};
-    const char_t *file = comwin_save_file(app->window, "Backup Database", types, 1, NULL, NULL);
+    const char_t *file = comwin_save_file(app->window, types, 1, NULL);
     if (file != NULL)
     {
         char error[256];
@@ -956,7 +955,7 @@ static void i_OnBackup2(App *app, Event *e)
 static void i_OnRestore(App *app, Event *e)
 {
     const char_t *types[] = {"db"};
-    const char_t *file = comwin_open_file(app->window, "Restore Database", types, 1, NULL, NULL);
+    const char_t *file = comwin_open_file(app->window, types, 1, NULL);
     if (file != NULL)
     {
         char error[256];
@@ -1187,20 +1186,20 @@ static App *i_app_create(const char *db_path)
     tableview_OnRowClick(app->table, listener(app, i_OnRowClick, App));
     tableview_header_resizable(app->table, TRUE);
     tableview_row_height(app->table, 26);
-    tableview_add_column_text(app->table);
+    tableview_new_column_text(app->table);
     tableview_header_title(app->table, 0, "Project");
     tableview_column_width(app->table, 0, 160);
-    tableview_add_column_text(app->table);
+    tableview_new_column_text(app->table);
     tableview_header_title(app->table, 1, "Task");
     tableview_column_width(app->table, 1, 260);
-    tableview_add_column_text(app->table);
+    tableview_new_column_text(app->table);
     tableview_header_title(app->table, 2, "Tags");
     tableview_column_width(app->table, 2, 180);
-    tableview_add_column_text(app->table);
+    tableview_new_column_text(app->table);
     tableview_header_title(app->table, 3, "Today");
     tableview_column_width(app->table, 3, 110);
     tableview_header_align(app->table, 3, ekCENTER);
-    tableview_add_column_text(app->table);
+    tableview_new_column_text(app->table);
     tableview_header_title(app->table, 4, "Total");
     tableview_column_width(app->table, 4, 110);
     tableview_header_align(app->table, 4, ekCENTER);
@@ -1268,7 +1267,7 @@ static App *i_app_create(const char *db_path)
 
     panel_layout(app->panel, layout);
     window_panel(app->window, app->panel);
-    window_client_size(app->window, s2df((real32_t)app->model.settings.width, (real32_t)app->model.settings.height));
+    /* Window size is controlled by layout; NAppGUI client size setter varies by version. */
 
     window_hotkey(app->window, ekKEY_N, ekMKEY_CONTROL, listener(app, i_OnNewTask, App));
     window_hotkey(app->window, ekKEY_E, ekMKEY_CONTROL, listener(app, i_OnEditTask, App));

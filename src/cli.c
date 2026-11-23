@@ -602,7 +602,7 @@ static int i_handle_projects(NtModel *model, const Opts *opts)
             puts("---- ---------------------------");
             for (i = 0; i < model->nprojects; i += 1)
                 printf("%-4d %s\n", model->projects[i].id, model->projects[i].name);
-            printf("\n%zu projects total.\n", model->nprojects);
+            printf("\n%lu projects total.\n", (unsigned long)model->nprojects);
         }
         return 1;
     }
@@ -712,7 +712,7 @@ static int i_handle_tags(NtModel *model, const Opts *opts)
         {
             for (i = 0; i < model->ntags; i += 1)
                 puts(model->tags[i].name);
-            printf("\n%zu tags total.\n", model->ntags);
+            printf("\n%lu tags total.\n", (unsigned long)model->ntags);
         }
         return 1;
     }
@@ -724,7 +724,7 @@ static int i_handle_data(NtModel *model, const Opts *opts, const char *db_path)
     if (opts->export_csv != NULL)
     {
         if (nt_model_export_csv(model, opts->export_csv) == 0)
-            printf("Exported %zu tasks to: %s\n", model->ntasks, opts->export_csv);
+            printf("Exported %lu tasks to: %s\n", (unsigned long)model->ntasks, opts->export_csv);
         else
             fprintf(stderr, "Error: Failed to write CSV to %s\n", opts->export_csv);
         return 1;
@@ -732,7 +732,7 @@ static int i_handle_data(NtModel *model, const Opts *opts, const char *db_path)
     if (opts->export_json != NULL)
     {
         if (nt_model_export_json(model, opts->export_json) == 0)
-            printf("Exported %zu tasks to: %s\n", model->ntasks, opts->export_json);
+            printf("Exported %lu tasks to: %s\n", (unsigned long)model->ntasks, opts->export_json);
         else
             fprintf(stderr, "Error: Failed to write JSON to %s\n", opts->export_json);
         return 1;
@@ -843,7 +843,7 @@ static int i_handle_utility(NtModel *model, const Opts *opts)
             today_total += nt_model_day_seconds(model, model->tasks[i].id, today);
         }
         if (opts->json)
-            printf("{\"running\": %d, \"total_tasks\": %zu, \"today_seconds\": %lld}\n", running, model->ntasks, (long long)today_total);
+            printf("{\"running\": %d, \"total_tasks\": %lu, \"today_seconds\": %lld}\n", running, (unsigned long)model->ntasks, (long long)today_total);
         else
             printf("%d tasks running, %lld:%02lld today\n", running, (long long)(today_total / 3600), (long long)((today_total % 3600) / 60));
         return 1;
