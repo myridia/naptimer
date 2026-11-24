@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=NapTimer
+Comment=Desktop time tracker with CouchDB-ready SQLite storage
+Exec=naptimer
+Icon=naptimer
+Terminal=false
+Categories=Utility;Office;ProjectManagement;

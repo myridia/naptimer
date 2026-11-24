@@ -1,0 +1,3 @@
+build/Release/bin/naptimer usr/bin/
+debian/naptimer.desktop usr/share/applications/
+debian/naptimer.svg usr/share/icons/hicolor/scalable/apps/

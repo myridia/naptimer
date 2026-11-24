@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="NapTimer — a cross-platform NAppGUI time tracker with CouchDB-ready SQLite document storage.">
+  <title>NapTimer</title>
+  <style>
+    :root {
+      --bg: #f5f4ef;
+      --panel: #fffdf8;
+      --ink: #1f2430;
+      --muted: #5e6673;
+      --line: #ddd8cd;
+      --accent: #2f6b4f;
+      --accent-soft: #e7f0ea;
+      --code: #f0eee8;
+      --shadow: 0 8px 24px rgba(31, 36, 48, 0.06);
+      --radius: 14px;
+      --max: 980px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #faf9f5 0%, var(--bg) 100%);
+      line-height: 1.65;
+    }
+    a { color: var(--accent); }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+    pre {
+      margin: 0;
+      padding: 16px;
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+    header {
+      padding: 40px 0 24px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 28px;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: var(--shadow);
+    }
+    .logo {
+      width: 140px;
+      height: 140px;
+      display: block;
+    }
+    .eyebrow {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      margin-bottom: 12px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(36px, 6vw, 56px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+    .lead {
+      margin: 0;
+      font-size: 19px;
+      color: var(--muted);
+      max-width: 42rem;
+    }
+    main { padding: 24px 0 64px; }
+    section { margin-bottom: 28px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    p { margin: 0 0 14px; }
+    p:last-child { margin-bottom: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+    ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    li { margin: 0 0 8px; }
+    li:last-child { margin-bottom: 0; }
+    .muted { color: var(--muted); }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .pill {
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      font-size: 14px;
+      color: #374151;
+    }
+    footer {
+      padding: 0 0 40px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media (max-width: 720px) {
+      .hero { grid-template-columns: 1fr; gap: 18px; padding: 24px; }
+      .logo { width: 96px; height: 96px; }
+      .grid { grid-template-columns: 1fr; }
+      .card { padding: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="hero">
+        <img class="logo" src="img/naptimer.svg" alt="NapTimer logo">
+        <div>
+          <div class="eyebrow">Open source time tracker</div>
+          <h1>NapTimer</h1>
+          <p class="lead">A cross-platform desktop time tracker written in C with NAppGUI. Ported from gtimer, with all app data stored as CouchDB-ready JSON documents in SQLite.</p>
+          <div class="pill-row">
+            <span class="pill">C / NAppGUI</span>
+            <span class="pill">SQLite docs</span>
+            <span class="pill">CouchDB-ready</span>
+            <span class="pill">GPL-2.0-or-later</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <section class="grid">
+        <div class="card">
+          <h2>What it does</h2>
+          <ul>
+            <li>Track time by task with daily totals and running timers.</li>
+            <li>Organize work with projects, tags, and annotations.</li>
+            <li>Navigate by day and review totals for selected dates.</li>
+            <li>Generate text or HTML reports with date ranges and rounding.</li>
+            <li>Use quick entry: <code>task@project #tag</code>.</li>
+            <li>Export/import data and back up the local database.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h2>Port goals</h2>
+          <p>NapTimer keeps gtimer's daily-total tracking model, but replaces GTK/Libadwaita with NAppGUI for a lightweight cross-platform desktop UI.</p>
+          <p>Instead of relational app tables, every persisted object is stored as a JSON document in a single SQLite table. This keeps local storage simple and makes future CouchDB synchronization straightforward.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Data model</h2>
+        <p class="muted">All application data lives in one table. The <code>doc</code> column contains JSON with a <code>type</code> field; <code>_rev</code> uses CouchDB-style <code>N-hash</code> revisions.</p>
+        <pre><code>CREATE TABLE IF NOT EXISTS docs (
+  id    TEXT PRIMARY KEY NOT NULL,
+  _rev  TEXT NOT NULL,
+  doc   TEXT NOT NULL
+);</code></pre>
+        <p style="margin-top:14px;">Document IDs include <code>settings</code>, <code>session</code>, <code>project-N</code>, <code>task-N</code>, <code>day-N-YYYY-MM-DD</code>, <code>annotation-N</code>, and <code>tag-N</code>.</p>
+      </section>
+
+      <section class="grid">
+        <div class="card">
+          <h2>Build</h2>
+          <p>NAppGUI SDK must be installed (default <code>/usr/local/nappgui</code>). SQLite3 development files are required.</p>
+          <pre><code>./build.sh
+
+# or manually
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=/usr/local/nappgui
+cmake --build build</code></pre>
+        </div>
+        <div class="card">
+          <h2>CLI</h2>
+          <p>NapTimer includes a command-line interface for scripting and quick checks.</p>
+          <pre><code>naptimer --list-tasks
+naptimer --start 1
+naptimer --stop
+naptimer --report weekly --report-file report.txt
+naptimer --export-json export.json</code></pre>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Features</h2>
+        <div class="grid">
+          <ul>
+            <li>Projects, tasks, tags, annotations</li>
+            <li>Start/stop/toggle, stop-all, auto-save</li>
+            <li>Day navigation and daily totals</li>
+            <li>Text and HTML reports</li>
+          </ul>
+          <ul>
+            <li>JSON/CSV export and CSV import</li>
+            <li>SQLite backup and restore</li>
+            <li>Portable idle detection</li>
+            <li>CLI for automation and status</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>NapTimer is free software licensed under GPL-2.0-or-later.</p>
+    </div>
+  </footer>
+</body>
+</html>
