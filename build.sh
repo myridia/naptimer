@@ -20,13 +20,43 @@ esac
 
 rm -rf build
 cmake -S . -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DCMAKE_INSTALL_PREFIX=/usr/local/nappgui $EXTRA_FLAGS
-cmake --build build
+cmake --build build --config "$BUILD_TYPE"
 
-BIN="build/Release/bin/naptimer"
-if [ -x "build/Debug/bin/naptimer" ]; then
-  BIN="build/Debug/bin/naptimer"
-elif [ -x "build/Release/bin/naptimer" ]; then
-  BIN="build/Release/bin/naptimer"
+app_executable() {
+  for candidate in \
+    "build/$BUILD_TYPE/bin/naptimer" \
+    "build/Debug/bin/naptimer" \
+    "build/Release/bin/naptimer" \
+    "build/$BUILD_TYPE/bin/naptimer.app/Contents/MacOS/naptimer" \
+    "build/Debug/bin/naptimer.app/Contents/MacOS/naptimer" \
+    "build/Release/bin/naptimer.app/Contents/MacOS/naptimer"
+  do
+    if [ -x "$candidate" ]; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+app_bundle() {
+  for candidate in \
+    "build/$BUILD_TYPE/bin/naptimer.app" \
+    "build/Debug/bin/naptimer.app" \
+    "build/Release/bin/naptimer.app"
+  do
+    if [ -d "$candidate" ] && [ -x "$candidate/Contents/MacOS/naptimer" ]; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! BIN=$(app_executable); then
+  echo "Could not find the naptimer executable in build/"
+  find build -type f -name 'naptimer*' -print || true
+  exit 1
 fi
 
 if [ "$MODE" = "gdb" ]; then
@@ -43,10 +73,18 @@ fi
 
 case "$(uname)" in
   Darwin)
-    if [ "$BUILD_TYPE" = "Debug" ]; then
-      "$BIN"
+    if BUNDLE=$(app_bundle); then
+      case "$BUNDLE" in
+        /*) ;;
+        *) BUNDLE="$(pwd)/$BUNDLE" ;;
+      esac
+      if [ "$BUILD_TYPE" = "Debug" ]; then
+        "$BIN"
+      else
+        open "$BUNDLE"
+      fi
     else
-      open build/Release/bin/naptimer.app
+      "$BIN"
     fi
     ;;
   *) "$BIN" ;;
