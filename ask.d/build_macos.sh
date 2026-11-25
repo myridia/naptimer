@@ -31,12 +31,14 @@ case "$MODE" in
     ;;
 esac
 
-printf "  Clean macOS %s build\n" "$BUILD_TYPE"
+DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-14.0}"
+
+printf "  Clean macOS %s build (deployment target %s)\n" "$BUILD_TYPE" "$DEPLOYMENT_TARGET"
 rm -rf build
 
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET" \
   -DCMAKE_INSTALL_PREFIX=/usr/local/nappgui
 cmake --build build --config "$BUILD_TYPE"
 
