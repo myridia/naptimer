@@ -20,7 +20,12 @@ require_cmd cmake
 
 get_nappgui_source
 
-cmake -G Xcode -S "$SRC" -B "$SRC/build" -DNAPPGUI_DEMO=NO -DDEPLOYMENT_TARGET_OSX=14.0
+DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-14.0}"
+
+cmake -G Xcode -S "$SRC" -B "$SRC/build" \
+  -DNAPPGUI_DEMO=NO \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET" \
+  -DDEPLOYMENT_TARGET_OSX="$DEPLOYMENT_TARGET"
 cmake --build "$SRC/build" --config Release -j 4
 SUDO=$(sudo_cmd)
 $SUDO cmake --install "$SRC/build" --config Release --prefix "$PREFIX"

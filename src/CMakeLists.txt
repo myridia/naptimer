@@ -11,8 +11,16 @@ endif()
 target_link_libraries(naptimer ${NT_SQLITE_TARGET} ${CMAKE_DL_LIBS})
 
 if(APPLE)
-  find_library(APPLICATION_SERVICES Framework ApplicationServices)
-  if(APPLICATION_SERVICES)
-    target_link_libraries(naptimer ${APPLICATION_SERVICES})
+  find_library(APPLICATION_SERVICES_FRAMEWORK ApplicationServices)
+  if(APPLICATION_SERVICES_FRAMEWORK)
+    target_link_libraries(naptimer ${APPLICATION_SERVICES_FRAMEWORK})
+  endif()
+
+  # NAppGUI 1.7 uses UTType in its macOS file dialogs when built against
+  # macOS 12+ SDKs. Some installed NAppGUI config files don't add this
+  # framework for app targets, so link it explicitly when it is available.
+  find_library(UNIFORM_TYPE_IDENTIFIERS_FRAMEWORK UniformTypeIdentifiers)
+  if(UNIFORM_TYPE_IDENTIFIERS_FRAMEWORK)
+    target_link_libraries(naptimer ${UNIFORM_TYPE_IDENTIFIERS_FRAMEWORK})
   endif()
 endif()
