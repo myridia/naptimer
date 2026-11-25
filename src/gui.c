@@ -16,7 +16,6 @@
 #include <string.h>
 #include <time.h>
 
-typedef struct _App App;
 typedef struct _Prompt Prompt;
 
 struct _Prompt
@@ -41,7 +40,6 @@ struct _App
     Button *start_button;
     Button *stop_all_button;
     Layout *quick_layout;
-    Layout *main_layout;
     Label *tb_labels[6];
     Button *nav_buttons[3];
 
@@ -69,9 +67,7 @@ struct _App
     int idle_prompt_open;
     real32_t win_width;
     real32_t win_height;
-    real32_t table_width;
-    real32_t table_height;
-    Menu *context_menu;
+
 };
 
 enum
@@ -949,7 +945,7 @@ static void i_OnReport(App *app, Event *e)
 
     nt_today(to);
     nt_date_shift(to, -6, from);
-    file = comwin_save_file(app->window, types, 2, NULL);
+    file = comwin_save_file(app->window, "Save Report", types, 2, NULL, NULL);
     if (file == NULL)
     {
         unref(e);
@@ -978,7 +974,7 @@ static void i_OnReport(App *app, Event *e)
 static void i_OnExportJson(App *app, Event *e)
 {
     const char_t *types[] = {"json"};
-    const char_t *file = comwin_save_file(app->window, types, 1, NULL);
+    const char_t *file = comwin_save_file(app->window, "Export JSON", types, 1, NULL, NULL);
     if (file != NULL)
     {
         if (nt_model_export_json(&app->model, file) == 0)
@@ -992,7 +988,7 @@ static void i_OnExportJson(App *app, Event *e)
 static void i_OnExportCsv(App *app, Event *e)
 {
     const char_t *types[] = {"csv"};
-    const char_t *file = comwin_save_file(app->window, types, 1, NULL);
+    const char_t *file = comwin_save_file(app->window, "Export CSV", types, 1, NULL, NULL);
     if (file != NULL)
     {
         if (nt_model_export_csv(&app->model, file) == 0)
@@ -1006,7 +1002,7 @@ static void i_OnExportCsv(App *app, Event *e)
 static void i_OnImportCsv(App *app, Event *e)
 {
     const char_t *types[] = {"csv"};
-    const char_t *file = comwin_open_file(app->window, types, 1, NULL);
+    const char_t *file = comwin_open_file(app->window, "Import CSV", types, 1, NULL, NULL);
     if (file != NULL)
     {
         char error[256];
@@ -1025,7 +1021,7 @@ static void i_OnImportCsv(App *app, Event *e)
 static void i_OnBackup2(App *app, Event *e)
 {
     const char_t *types[] = {"db"};
-    const char_t *file = comwin_save_file(app->window, types, 1, NULL);
+    const char_t *file = comwin_save_file(app->window, "Backup Database", types, 1, NULL, NULL);
     if (file != NULL)
     {
         char error[256];
@@ -1041,7 +1037,7 @@ static void i_OnBackup2(App *app, Event *e)
 static void i_OnRestore(App *app, Event *e)
 {
     const char_t *types[] = {"db"};
-    const char_t *file = comwin_open_file(app->window, types, 1, NULL);
+    const char_t *file = comwin_open_file(app->window, "Restore Database", types, 1, NULL, NULL);
     if (file != NULL)
     {
         char error[256];
@@ -1219,19 +1215,6 @@ static void i_tick(App *app)
     }
 }
 
-static void i_OnTableResize(App *app, Event *e)
-{
-    const EvSize *p = event_params(e, EvSize);
-    if (p->width > 0.f && p->height > 0.f)
-    {
-        app->table_width = p->width;
-        app->table_height = p->height;
-        if (app->main_layout != NULL)
-            layout_hsize(app->main_layout, 0, p->width + 20.f);
-    }
-    unref(e);
-}
-
 static void i_OnWindowResize(App *app, Event *e)
 {
     const EvSize *p = event_params(e, EvSize);
@@ -1242,13 +1225,7 @@ static void i_OnWindowResize(App *app, Event *e)
 
 static void i_OnWindowClose(App *app, Event *e)
 {
-    if (app->table_width >= 400.f && app->table_height >= 200.f)
-    {
-        app->model.settings.width = (int)app->table_width;
-        app->model.settings.height = (int)app->table_height;
-        nt_model_save_settings(&app->model);
-    }
-    else if (app->win_width >= 400.f && app->win_height >= 300.f)
+    if (app->win_width >= 400.f && app->win_height >= 300.f)
     {
         app->model.settings.width = (int)app->win_width;
         app->model.settings.height = (int)app->win_height;
@@ -1312,153 +1289,12 @@ static void i_OnFontSize(App *app, Event *e)
     unref(e);
 }
 
-static void i_OnTableDown(App *app, Event *e)
-{
-    const EvMouse *p = event_params(e, EvMouse);
-    View *view = cast(app->table, View);
-    V2Df vpos;
-    real32_t header_h = 28.f;
-    real32_t row_h = i_ui_font_size(app) + 16.f;
-    uint32_t row;
-
-    view_viewport(view, &vpos, NULL);
-
-    if (p->y < header_h)
-    {
-        unref(e);
-        return;
-    }
-
-    row = (uint32_t)(((p->y + vpos.y) - header_h) / row_h);
-    if (row >= app->nrows)
-    {
-        unref(e);
-        return;
-    }
-
-    {
-        uint32_t sel = row;
-        tableview_select(app->table, &sel, 1);
-        tableview_update(app->table);
-    }
-
-    if (p->button == ekGUI_MOUSE_RIGHT)
-    {
-        Menu *menu = menu_create();
-        MenuItem *mi;
-        V2Df pos;
-
-        /* Primary actions */
-        mi = menuitem_create();
-        menuitem_text(mi, "Start/Stop");
-        menuitem_OnClick(mi, listener(app, i_OnStartStop, App));
-        menu_add_item(menu, mi);
-
-        mi = menuitem_create();
-        menuitem_text(mi, "Edit...");
-        menuitem_OnClick(mi, listener(app, i_OnEditTask, App));
-        menu_add_item(menu, mi);
-
-        mi = menuitem_create();
-        menuitem_text(mi, "Annotate...");
-        menuitem_OnClick(mi, listener(app, i_OnAnnotate, App));
-        menu_add_item(menu, mi);
-
-        menu_add_item(menu, menuitem_separator());
-
-        /* Time adjustments */
-        {
-            MenuItem *add_item = menuitem_create();
-            Menu *add_menu = menu_create();
-            menuitem_text(add_item, "Add Time");
-
-            mi = menuitem_create(); menuitem_text(mi, "+1 Minute"); menuitem_OnClick(mi, listener(app, i_OnAdd1m, App)); menu_add_item(add_menu, mi);
-            mi = menuitem_create(); menuitem_text(mi, "+5 Minutes"); menuitem_OnClick(mi, listener(app, i_OnAdd5m, App)); menu_add_item(add_menu, mi);
-            mi = menuitem_create(); menuitem_text(mi, "+30 Minutes"); menuitem_OnClick(mi, listener(app, i_OnAdd30m, App)); menu_add_item(add_menu, mi);
-
-            menuitem_submenu(add_item, &add_menu);
-            menu_add_item(menu, add_item);
-        }
-        {
-            MenuItem *rem_item = menuitem_create();
-            Menu *rem_menu = menu_create();
-            menuitem_text(rem_item, "Remove Time");
-
-            mi = menuitem_create(); menuitem_text(mi, "-1 Minute"); menuitem_OnClick(mi, listener(app, i_OnSub1m, App)); menu_add_item(rem_menu, mi);
-            mi = menuitem_create(); menuitem_text(mi, "-5 Minutes"); menuitem_OnClick(mi, listener(app, i_OnSub5m, App)); menu_add_item(rem_menu, mi);
-            mi = menuitem_create(); menuitem_text(mi, "-30 Minutes"); menuitem_OnClick(mi, listener(app, i_OnSub30m, App)); menu_add_item(rem_menu, mi);
-
-            menuitem_submenu(rem_item, &rem_menu);
-            menu_add_item(menu, rem_item);
-        }
-
-        mi = menuitem_create();
-        menuitem_text(mi, "Set to Zero");
-        menuitem_OnClick(mi, listener(app, i_OnSetZero, App));
-        menu_add_item(menu, mi);
-
-        menu_add_item(menu, menuitem_separator());
-
-        /* Clipboard */
-        mi = menuitem_create();
-        menuitem_text(mi, "Cut Time");
-        menuitem_OnClick(mi, listener(app, i_OnCutTime, App));
-        menu_add_item(menu, mi);
-
-        mi = menuitem_create();
-        menuitem_text(mi, "Copy Time");
-        menuitem_OnClick(mi, listener(app, i_OnCopyTime, App));
-        menu_add_item(menu, mi);
-
-        mi = menuitem_create();
-        menuitem_text(mi, "Paste Time");
-        menuitem_OnClick(mi, listener(app, i_OnPasteTime, App));
-        menu_add_item(menu, mi);
-
-        menu_add_item(menu, menuitem_separator());
-
-        /* Destructive */
-        mi = menuitem_create();
-        menuitem_text(mi, "Hide");
-        menuitem_OnClick(mi, listener(app, i_OnHideTask, App));
-        menu_add_item(menu, mi);
-
-        mi = menuitem_create();
-        menuitem_text(mi, "Delete");
-        menuitem_OnClick(mi, listener(app, i_OnDeleteTask, App));
-        menu_add_item(menu, mi);
-
-        {
-            V2Df origin = window_get_origin(app->window);
-            R2Df frame = window_control_frame(app->window, guicontrol(app->table));
-            real32_t row_y = header_h + (real32_t)row * row_h - vpos.y;
-            pos.x = origin.x + frame.pos.x + p->lx;
-            pos.y = origin.y + frame.pos.y + row_y;
-        }
-        if (app->context_menu != NULL)
-            menu_destroy(&app->context_menu);
-        app->context_menu = menu;
-        menu_launch(app->context_menu, pos);
-        unref(e);
-        return;
-    }
-
-    if (p->button == ekGUI_MOUSE_LEFT)
-    {
-        i_OnStartStop(app, e);
-        return;
-    }
-
-    unref(e);
-}
-
 static App *i_app_create(const char *db_path)
 {
     App *app = heap_new0(App);
     Layout *layout = layout_create(1, 4);
     Layout *toolbar = layout_create(6, 1);
-    app->main_layout = layout;
-    Layout *toolbar_row = layout_create(2, 1);
+    Layout *toolbar_row = layout_create(1, 1);
     Layout *footer = layout_create(5, 1);
     Button *btn_start = button_flat();
     Button *btn_stop = button_flat();
@@ -1512,26 +1348,26 @@ static App *i_app_create(const char *db_path)
     app->quick_layout = NULL;
 
     tableview_OnData(app->table, listener(app, i_OnTableData, App));
-    tableview_header_resizable(app->table, TRUE);
-    tableview_header_visible(app->table, TRUE);
-    tableview_row_height(app->table, (uint32_t)(i_ui_font_size(app) + 16.f));
-    tableview_new_column_text(app->table);
+    tableview_add_column_text(app->table);
     tableview_header_title(app->table, 0, "Project");
     tableview_column_width(app->table, 0, 160);
-    tableview_new_column_text(app->table);
+    tableview_add_column_text(app->table);
     tableview_header_title(app->table, 1, "Task");
     tableview_column_width(app->table, 1, 340);
-    tableview_new_column_text(app->table);
+    tableview_add_column_text(app->table);
     tableview_header_title(app->table, 2, "Tags");
     tableview_column_width(app->table, 2, 180);
-    tableview_new_column_text(app->table);
+    tableview_add_column_text(app->table);
     tableview_header_title(app->table, 3, "Today");
     tableview_column_width(app->table, 3, 110);
     tableview_header_align(app->table, 3, ekCENTER);
-    tableview_new_column_text(app->table);
+    tableview_add_column_text(app->table);
     tableview_header_title(app->table, 4, "Total");
     tableview_column_width(app->table, 4, 110);
     tableview_header_align(app->table, 4, ekCENTER);
+    tableview_header_resizable(app->table, TRUE);
+    tableview_header_visible(app->table, TRUE);
+    tableview_row_height(app->table, (uint32_t)(i_ui_font_size(app) + 16.f));
     {
         real32_t tw = 900.f;
         real32_t th = 460.f;
@@ -1671,7 +1507,7 @@ static App *i_app_create(const char *db_path)
     layout_halign(footer, 4, 0, ekRIGHT);
 
     layout_layout(toolbar_row, toolbar, 0, 0);
-    layout_hexpand(toolbar_row, 1);
+    layout_hexpand(toolbar_row, 0);
     layout_layout(layout, toolbar_row, 0, 0);
     layout_tableview(layout, app->table, 0, 1);
     layout_layout(layout, footer, 0, 2);
@@ -1690,8 +1526,7 @@ static App *i_app_create(const char *db_path)
 
     panel_layout(app->panel, layout);
     window_panel(app->window, app->panel);
-    view_OnSize(cast(app->table, View), listener(app, i_OnTableResize, App));
-    view_OnDown(cast(app->table, View), listener(app, i_OnTableDown, App));
+    tableview_OnRowClick(app->table, listener(app, i_OnRowClick, App));
 
     window_hotkey(app->window, ekKEY_N, ekMKEY_CONTROL, listener(app, i_OnNewTask, App));
     window_hotkey(app->window, ekKEY_E, ekMKEY_CONTROL, listener(app, i_OnEditTask, App));
@@ -2020,8 +1855,6 @@ static void i_app_destroy(App **app)
     nt_store_close(&(*app)->store);
     if ((*app)->rows != NULL)
         free((*app)->rows);
-    if ((*app)->context_menu != NULL)
-        menu_destroy(&(*app)->context_menu);
     window_destroy(&(*app)->window);
     heap_delete(app, App);
 }
