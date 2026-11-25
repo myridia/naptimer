@@ -845,6 +845,7 @@ static void i_OnToday(App *app, Event *e)
 
 static void i_OnQuickEntry(App *app, Event *e)
 {
+    unref(app);
     unref(e);
 }
 

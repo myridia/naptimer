@@ -94,8 +94,10 @@ int nt_idle_available(void)
 int64_t nt_idle_seconds(void)
 {
 #if defined(__APPLE__)
+    /* kCGAnyInputEventType is not exposed by newer SDKs.  The documented
+       raw value for "any input event" is ~0. */
     double seconds = CGEventSourceSecondsSinceLastEventType(
-        kCGEventSourceStateCombinedSessionState, kCGEventAny);
+        kCGEventSourceStateCombinedSessionState, (CGEventType)0xffffffffU);
     if (seconds < 0 || seconds > 86400.0 * 30)
         return -1;
     return (int64_t)seconds;
