@@ -1,17 +1,40 @@
 #!/bin/sh
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+ROOT=$(cd "$(dirname "$0")" && pwd)
+TASKS_DIR="$ROOT/ask.d"
+
+if [ ! -d "$TASKS_DIR" ]; then
+  printf "  Missing task directory: %s\n" "$TASKS_DIR"
+  exit 1
+fi
+
+task_meta() {
+  sed -n "s/^# $2: //p" "$1" | head -n 1
+}
+
+task_id() {
+  task_meta "$1" id
+}
+
+list_tasks() {
+  for f in "$TASKS_DIR"/*.sh; do
+    [ -f "$f" ] || continue
+    [ "${f##*/}" = "lib.sh" ] && continue
+    id=$(task_id "$f")
+    [ -n "$id" ] || continue
+    printf '%s|%s|%s\n' "$id" "$(task_meta "$f" desc)" "$f"
+  done | sort -t'|' -k1,1n
+}
 
 show_menu() {
   printf "%s\n" '  ┌─────┬──────────────────────────────────────────────┐'
   printf "%s\n" '  │  ID │ Description                                  │'
   printf "%s\n" '  ├─────┼──────────────────────────────────────────────┤'
-  printf "%s\n" '  │  1  │ Install NAppGUI - Windows (C:/nappgui)       │'
-  printf "%s\n" '  │  2  │ Install NAppGUI - macOS (/usr/local/nappgui) │'
-  printf "%s\n" '  │  3  │ Install NAppGUI - Linux (/usr/local/nappgui) │'
-  printf "%s\n" '  │  4  │ Build & run app (./build.sh)                 │'
-  printf "%s\n" '  │  5  │ Clean SQLite DB (fresh start)                │'
-  printf "%s\n" '  │  0  │ Exit                                         │'
+  list_tasks | while IFS='|' read -r id desc file; do
+    printf '  │ %2s  │ %-44s │\n' "$id" "$desc"
+  done
+  printf "%s\n" '  ├─────┼──────────────────────────────────────────────┤'
+  printf '  │ %2s  │ %-44s │\n' "0" "Exit"
   printf "%s\n" '  └─────┴──────────────────────────────────────────────┘'
 }
 
@@ -28,21 +51,29 @@ while true; do
     exit 0
   fi
 
-  if [ "$task" = "1" ]; then
-    printf "  ...installing NAppGUI for Windows\n"
-    "$SCRIPT_DIR/ask.d/install_nappgui_windows.sh"
-  elif [ "$task" = "2" ]; then
-    printf "  ...installing NAppGUI for macOS\n"
-    "$SCRIPT_DIR/ask.d/install_nappgui_macos.sh"
-  elif [ "$task" = "3" ]; then
-    printf "  ...installing NAppGUI for Linux\n"
-    "$SCRIPT_DIR/ask.d/install_nappgui_linux.sh"
-  elif [ "$task" = "4" ]; then
-    printf "  ...building and running the app\n"
-    "$SCRIPT_DIR/ask.d/build.sh"
-  elif [ "$task" = "5" ]; then
-    printf "  ...cleaning NapTimer DB\n"
-    "$SCRIPT_DIR/ask.d/clean_db.sh"
+  case "$task" in
+    ''|*[!0-9]*)
+      printf "  Unknown task: %s\n" "$task"
+      sleep 2
+      printf "\n"
+      continue
+      ;;
+  esac
+
+  task_file=""
+  for f in "$TASKS_DIR"/*.sh; do
+    [ -f "$f" ] || continue
+    [ "${f##*/}" = "lib.sh" ] && continue
+    if [ "$(task_id "$f")" = "$task" ]; then
+      task_file=$f
+      break
+    fi
+  done
+
+  if [ -n "$task_file" ]; then
+    sh "$task_file"
+    rc=$?
+    [ "$rc" -eq 0 ] || printf "  Task %s exited with code %s.\n" "$task" "$rc"
   else
     printf "  Unknown task: %s\n" "$task"
   fi
