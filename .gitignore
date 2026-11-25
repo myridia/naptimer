@@ -1,6 +1,7 @@
 build
+.nappgui-src/
 # Prerequisites
-*.d
+
 
 # Object files
 *.o
