@@ -2,6 +2,7 @@ name: FreeBSD
 on:
   workflow_dispatch:
   workflow_call:
+
 permissions:
   contents: write
   pull-requests: write
@@ -11,49 +12,11 @@ permissions:
 jobs:
   build_freebsd:
     runs-on: ubuntu-22.04
-    name: A job to run FreeBSD
-    env:
-      MYTOKEN : ${{ secrets.MYTOKEN }}
-      MYTOKEN2: "value2"
+    name: FreeBSD (unsupported)
+
     steps:
-    - uses: actions/checkout@v4
-    - name: FreeBSD VM
-      id: freebsd_id
-      uses: vmactions/freebsd-vm@v1
-      with:
-        envs: 'MYTOKEN MYTOKEN2'
-        usesh: true
-        prepare: |
-          pkg update -f
-          pkg install -y cmake gmake git pkgconf sqlite3 gtk3 ca_root_nss xorgproto libglvnd
-
+      - name: Skip
         run: |
-          set -ex
-
-          echo "== Cloning NAppGUI =="
-          git clone --depth 1 https://github.com/frang75/nappgui_src.git
-          cd nappgui_src
-          cmake -S . -B build -G "Unix Makefiles" -DCMAKE_MAKE_PROGRAM=/usr/local/bin/gmake -DNAPPGUI_DEMO=NO -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --config Release -j 4
-          cmake --install build --config Release --prefix /usr/local/nappgui
-          cd ..
-
-          echo "== Building naptimer =="
-          cmake -S . -B build -G "Unix Makefiles" -DCMAKE_MAKE_PROGRAM=/usr/local/bin/gmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local/nappgui -Dnappgui_DIR=/usr/local/nappgui/cmake
-          cmake --build build --config Release -j 4
-
-          echo "== Locating binary =="
-          find build -type f -name 'naptimer*' -print
-          NAPTIMER_BIN=$(find build -type f -name naptimer -perm -111 | head -n 1)
-          test -n "$NAPTIMER_BIN"
-          mkdir -p build/Release/bin
-          cp "$NAPTIMER_BIN" build/Release/bin/naptimer_freebsd
-
-    - name: Upload FreeBSD binary to release
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: 'build/Release/bin/naptimer_freebsd'
-        tag: ${{ github.ref }}
-        overwrite: true
-        file_glob: true
+          echo "NAppGUI 1.7 does not support FreeBSD."
+          echo "NAppCompilers.cmake rejects CMAKE_SYSTEM_NAME=FreeBSD with 'Unknown Platform'."
+          echo "Skipping the FreeBSD build until NAppGUI adds upstream FreeBSD support."
