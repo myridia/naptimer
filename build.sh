@@ -18,6 +18,20 @@ case "$MODE" in
     ;;
 esac
 
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    VCPKG_ROOT="${VCPKG_ROOT:-C:/vcpkg}"
+    if [ -f "$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" ]; then
+      if command -v cl >/dev/null 2>&1; then
+        TRIPLET=x64-windows-static
+      else
+        TRIPLET=x64-mingw-static
+      fi
+      EXTRA_FLAGS="$EXTRA_FLAGS -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=$TRIPLET -Dnappgui_DIR=C:/nappgui/cmake"
+    fi
+    ;;
+esac
+
 rm -rf build
 cmake -S . -B build -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DCMAKE_INSTALL_PREFIX=/usr/local/nappgui $EXTRA_FLAGS
 cmake --build build --config "$BUILD_TYPE"
@@ -25,8 +39,11 @@ cmake --build build --config "$BUILD_TYPE"
 app_executable() {
   for candidate in \
     "build/$BUILD_TYPE/bin/naptimer" \
+    "build/$BUILD_TYPE/bin/naptimer.exe" \
     "build/Debug/bin/naptimer" \
+    "build/Debug/bin/naptimer.exe" \
     "build/Release/bin/naptimer" \
+    "build/Release/bin/naptimer.exe" \
     "build/$BUILD_TYPE/bin/naptimer.app/Contents/MacOS/naptimer" \
     "build/Debug/bin/naptimer.app/Contents/MacOS/naptimer" \
     "build/Release/bin/naptimer.app/Contents/MacOS/naptimer"
