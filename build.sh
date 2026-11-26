@@ -38,6 +38,7 @@ case "$(uname -s)" in
     fi
     if [ -z "$CMAKE_GEN" ]; then
       printf "No Visual Studio C++ tools or MinGW found; run task 1 first\n"
+      printf "If task 1 did not install them: winget install --id Microsoft.VisualStudio.2022.BuildTools -e --override \"--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart --wait\"\n"
       exit 1
     fi
 

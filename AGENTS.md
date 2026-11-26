@@ -15,7 +15,7 @@ Cross-platform desktop time tracker, ported from `github/gtimer` (GTK 4/Libadwai
 
 The user builds and runs (`./build.sh`, or `./ask.sh` task 4). The agent should not assume the NAppGUI SDK or sqlite3 headers are present in every environment.
 
-Task 1 installs the Windows dev environment: cmake and git via winget/Chocolatey/Scoop when missing, a C compiler (Visual Studio Build Tools with the C++ workload, or an existing MinGW `gcc`), vcpkg at `C:/vcpkg` with `sqlite3` (`x64-windows-static` for MSVC, `x64-mingw-static` for MinGW), and NAppGUI at `C:/nappgui`. Task 4 selects the CMake generator explicitly on Windows (Visual Studio via `vswhere`, or MinGW Makefiles) instead of relying on CMake's default, which can pick NMake with no `nmake` available. It then passes the vcpkg toolchain, the matching triplet, and `C:/nappgui/cmake` to CMake.
+Task 1 installs the Windows dev environment: cmake and git via winget/Chocolatey/Scoop when missing, a C compiler (Visual Studio Build Tools with the C++ workload via winget `--override`/Chocolatey, or an existing MinGW `gcc`), vcpkg at `C:/vcpkg` with `sqlite3` (`x64-windows-static` for MSVC, `x64-mingw-static` for MinGW), and NAppGUI at `C:/nappgui`. Task 4 selects the CMake generator explicitly on Windows (Visual Studio via `vswhere`, or MinGW Makefiles) instead of relying on CMake's default, which can pick NMake with no `nmake` available. It then passes the vcpkg toolchain, the matching triplet, and `C:/nappgui/cmake` to CMake.
 
 ## Layout
 

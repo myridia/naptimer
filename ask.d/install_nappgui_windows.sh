@@ -75,15 +75,25 @@ elif command -v gcc >/dev/null 2>&1; then
   TRIPLET=x64-mingw-static
 else
   if ! pm=$(win_pkg_manager); then
-    printf "  No C compiler found; install Visual Studio Build Tools with the C++ workload\n"
+    printf "  No C compiler found; install VS Build Tools with the C++ workload:\n"
+    printf "  winget install --id Microsoft.VisualStudio.2022.BuildTools -e --override \"--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart --wait\"\n"
     exit 1
   fi
   printf "  Installing Visual Studio Build Tools (C++ workload)\n"
   case "$pm" in
-    winget*) "$pm" install --id Microsoft.VisualStudio.2022.BuildTools -e --accept-source-agreements --accept-package-agreements --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --wait ;;
+    winget*) "$pm" install --id Microsoft.VisualStudio.2022.BuildTools -e --accept-source-agreements --accept-package-agreements --override "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart --wait" ;;
     choco*) "$pm" install visualstudio2022buildtools -y --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" ;;
     scoop*) printf "  Install Visual Studio Build Tools with the C++ workload, then rerun task 1\n"; exit 1 ;;
   esac
+  VSWHERE="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
+  VS_VERSION=""
+  if [ -x "$VSWHERE" ]; then
+    VS_VERSION=$("$VSWHERE" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationVersion 2>/dev/null | tr -d '\r' | head -n 1)
+  fi
+  if [ -z "$VS_VERSION" ]; then
+    printf "  VS C++ tools still missing after install; rerun task 1 in an elevated shell\n"
+    exit 1
+  fi
   TRIPLET=x64-windows-static
 fi
 
