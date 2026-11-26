@@ -14,6 +14,9 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Dependencies
         run: vcpkg install sqlite3:x64-windows-static
 
@@ -21,18 +24,15 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/frang75/nappgui_src.git
           cd nappgui_src
-          cmake -S . -B build -DNAPPGUI_DEMO=NO
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DNAPPGUI_DEMO=NO
           cmake --build build --config Release -j 4
           cmake --install build --config Release --prefix C:/nappgui
 
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Build
         run: |
-          cmake -S . -B build -DCMAKE_INSTALL_PREFIX=C:/nappgui -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_INSTALL_PREFIX=C:/nappgui -Dnappgui_DIR=C:/nappgui/cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
           cmake --build build --config Release
-          ls build/Release/bin
+          Get-ChildItem build/Release/bin
 
       - name: Release
         uses: svenstaro/upload-release-action@v2
