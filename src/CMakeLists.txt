@@ -23,6 +23,21 @@ set(NAPTIMER_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/util.h"
 )
 
+# NAppGUI's Win32 resource script expects these icons whenever res/ exists.
+# Older working copies may not have them yet, so fall back to the SDK icons.
+if(WIN32)
+  foreach(icon logo256.ico logo48.ico)
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/res/${icon}"
+       AND EXISTS "${NAPPGUI_ROOT_PATH}/prj/templates/${icon}")
+      configure_file(
+        "${NAPPGUI_ROOT_PATH}/prj/templates/${icon}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/res/${icon}"
+        COPYONLY
+      )
+    endif()
+  endforeach()
+endif()
+
 # NAppGUI discovers sources with file(GLOB). That works on the normal
 # desktop builds, but the Windows pipeline can end up with an empty source
 # list and "No SOURCES given to target: naptimer". Feed NAppGUI the known
